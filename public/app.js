@@ -16,7 +16,6 @@
     casa: { title: 'Pagamento casa', render: () => renderPeople('casa') },
     comida: { title: 'Pagamento comida', render: () => renderPeople('comida') },
     gastos: { title: 'Gastos', render: renderExpenses },
-    cardapio: { title: 'Cardápio', render: renderMenu },
   };
 
   let data = null;
@@ -198,23 +197,6 @@
           ? `<ul class="rows ledger">${items}</ul>`
           : '<p class="empty">Nenhum gasto lançado ainda. Os gastos aparecem aqui quando forem adicionados na aba SAIDAS da planilha.</p>'}
       </section>
-      ${footer()}`;
-  }
-
-  // ------------------------------------------------------------------ cardápio
-  function renderMenu() {
-    const dias = data.cardapio.dias;
-    const weekday = (iso) => (iso ? new Date(`${iso}T12:00:00Z`).toLocaleDateString('pt-BR', { weekday: 'long', timeZone: 'UTC' }).replace('-feira', '') : '');
-    const meal = (label, v) => `<div class="meal"><dt>${label}</dt><dd class="${v ? '' : 'none'}">${v ? esc(v) : 'A definir'}</dd></div>`;
-    return `
-      <h1 class="page">Cardápio</h1>
-      <p class="lede">Sugestão de refeições para os dias da viagem.</p>
-      ${dias.length ? `<ol class="days">${dias.map((d) => `
-        <li class="day${d.iso === data.hoje ? ' day--today' : ''}">
-          <div class="day-date num">${esc(d.data)}<small>${d.iso === data.hoje ? 'hoje' : weekday(d.iso)}</small></div>
-          <dl style="margin:0">${meal('Almoço', d.almoco)}${meal('Janta', d.janta)}</dl>
-        </li>`).join('')}</ol>`
-        : '<p class="empty">Ainda não há cardápio na planilha. Preencha a aba MENU para ele aparecer aqui.</p>'}
       ${footer()}`;
   }
 

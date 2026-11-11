@@ -1,10 +1,10 @@
 # Dashboard do Réveillon
 
-Página somente leitura para os participantes acompanharem pagamentos, gastos e cardápio.
+Página somente leitura para os participantes acompanharem pagamentos e gastos.
 **A planilha do Google é o banco de dados**: você continua preenchendo nela e o dashboard
 mostra o que estiver lá (atualização em até alguns minutos).
 
-Abas: Início, Pagamento casa, Pagamento comida, Gastos e Cardápio.
+Abas: Início, Pagamento casa, Pagamento comida e Gastos.
 
 ## Publicar no Vercel
 
@@ -36,7 +36,7 @@ Depois de mudar uma variável, faça um novo deploy.
   Linhas `Total`, `Endereço:` e linhas sem nome são ignoradas. `--` significa "não se aplica".
 - **SAIDAS**: `DATA`, `SAIDA`, `VALOR`. Datas futuras aparecem como *previstas*.
   Para controlar na mão, adicione uma coluna `STATUS` com `previsto` ou `pago`.
-- **MENU**: `DATA`, `ALMOÇO`, `JANTA`. A primeira e a última data definem a contagem regressiva.
+- **MENU**: `DATA`, `ALMOÇO`, `JANTA`. O cardápio não tem aba no site, mas a primeira e a última data desta aba definem a contagem regressiva do Início. Mantenha as datas da viagem aqui.
 - Nomes e textos aparecem exatamente como estão na planilha.
 
 ## Rodar no computador
