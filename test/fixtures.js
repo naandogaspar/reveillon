@@ -44,9 +44,10 @@ const pagantes = [
 ];
 
 const saidas = [
-  ['DATA', 'SAIDA', 'VALOR'],
-  ['20/11', 'Mercado 1', 'R$ 500,00'],
-  ['30/12', 'Gelo', 'R$ 40,00'],
+  ['DATA', 'TIPO', 'SAIDA', 'VALOR', 'OBS'],
+  ['5/10', 'CASA', 'SINAL', 'R$ 2.880,00', 'ADIANTAMENTO DO SINAL DA CASA'],
+  ['05/11', 'COMIDA', 'COMPRAS BASE 1', 'R$ 320,50', 'COMPRA DE ITENS NÃO PERECIVEIS'],
+  ['10/11', 'COMIDA', 'MERCADO DESCARTAVEIS', 'R$ 257,38', 'COMPRA DE MATERIAL DE APOIO, COPOS, PRATOS, TALHES, ETC.'],
 ];
 
 const menu = [

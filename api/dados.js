@@ -26,7 +26,8 @@ module.exports = async function handler(req, res) {
     const tripYear = Number(process.env.TRIP_YEAR) || 2026;
 
     if (!memo || Date.now() - memo.at > MEMO_MS) {
-      memo = { at: Date.now(), data: await loadDashboard({ sheetId, tripYear }) };
+      const gids = { pagantes: process.env.GID_PAGANTES, saidas: process.env.GID_SAIDAS, menu: process.env.GID_MENU };
+      memo = { at: Date.now(), data: await loadDashboard({ sheetId, tripYear, gids }) };
     }
 
     // Com senha, a resposta nunca pode ficar em cache compartilhado (CDN).

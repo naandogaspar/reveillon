@@ -22,6 +22,7 @@ Abas: Início, Pagamento casa, Pagamento comida e Gastos.
 | `TRIP_YEAR` | Ano de início da viagem; datas sem ano (30/12, 01/01) usam isto. | `2026` |
 | `TRIP_TITLE` | Título no topo. | `Réveillon 2027` |
 | `TRIP_LOCATION` | Local mostrado ao lado das datas (ex.: `Maricá, RJ`). | vazio |
+| `GID_PAGANTES`, `GID_SAIDAS`, `GID_MENU` | Número `gid=` de cada aba (aparece na URL ao abrir a aba). Só mude se usar outra planilha. | abas da planilha padrão |
 
 Depois de mudar uma variável, faça um novo deploy.
 
@@ -34,7 +35,7 @@ Depois de mudar uma variável, faça um novo deploy.
   Dá para inserir linhas e colunas. Os saldos "pendente" são recalculados (valor − pago);
   se a planilha divergir do cálculo, o aviso aparece em `/api/dados` no campo `avisos`.
   Linhas `Total`, `Endereço:` e linhas sem nome são ignoradas. `--` significa "não se aplica".
-- **SAIDAS**: `DATA`, `SAIDA`, `VALOR`. Datas futuras aparecem como *previstas*.
+- **SAIDAS**: `DATA`, `SAIDA`, `VALOR`; colunas opcionais `TIPO` (ex.: CASA, COMIDA) e `OBS`. Datas futuras aparecem como *previstas*.
   Para controlar na mão, adicione uma coluna `STATUS` com `previsto` ou `pago`.
 - **MENU**: `DATA`, `ALMOÇO`, `JANTA`. O cardápio não tem aba no site, mas a primeira e a última data desta aba definem a contagem regressiva do Início. Mantenha as datas da viagem aqui.
 - Nomes e textos aparecem exatamente como estão na planilha.

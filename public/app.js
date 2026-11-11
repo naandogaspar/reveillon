@@ -182,7 +182,8 @@
     const g = data.gastos;
     const items = g.itens.map((i) => `<li class="row">
         <span class="name">${esc(i.descricao || 'Sem descrição')}</span><span class="amount num">${money(i.valor)}</span>
-        <div class="row-bottom"><span class="num">${esc(i.data || 'Sem data')}</span>${chip(i.status)}</div>
+        <div class="row-bottom"><span class="num">${esc(i.data || 'Sem data')}</span>${i.tipo ? `<span>${esc(sentence(i.tipo))}</span>` : ''}${chip(i.status)}</div>
+        ${i.obs ? `<p class="sub obs">${esc(i.obs)}</p>` : ''}
       </li>`).join('');
     return `
       <h1 class="page">Gastos</h1>
@@ -190,6 +191,7 @@
       <dl class="facts" style="margin-top:16px">
         <div><dt>Realizado</dt><dd class="num">${money(g.realizado)}</dd></div>
         <div><dt>Previsto</dt><dd class="num">${money(g.previsto)}<small>datas que ainda não chegaram</small></dd></div>
+        ${(g.porTipo || []).map((t) => `<div><dt>${esc(sentence(t.tipo))}</dt><dd class="num">${money(t.total)}</dd></div>`).join('')}
       </dl>
       <section aria-labelledby="h-lancamentos">
         <h2 id="h-lancamentos">Lançamentos</h2>

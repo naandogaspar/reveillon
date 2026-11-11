@@ -122,14 +122,32 @@ test('pagamento acima do valor não gera pendente negativo', () => {
   assert.equal(p.grupos[0].pessoas[0].casa.excedente, 30);
 });
 
-test('gastos: datas futuras são previstas, passadas são realizadas', () => {
+test('gastos: layout atual da planilha (DATA, TIPO, SAIDA, VALOR, OBS)', () => {
   const g = S.parseSaidas(fx.saidas, { tripYear: 2026, hoje: '2026-11-11' });
+  assert.equal(g.itens.length, 3);
+  assert.deepEqual(g.itens.map((i) => i.descricao), ['SINAL', 'COMPRAS BASE 1', 'MERCADO DESCARTAVEIS']);
+  assert.deepEqual(g.itens.map((i) => i.valor), [2880, 320.5, 257.38]);
+  assert.equal(g.itens[0].tipo, 'CASA');
+  assert.equal(g.itens[0].obs, 'ADIANTAMENTO DO SINAL DA CASA');
+  assert.equal(g.total, 3457.88);
+  assert.equal(g.realizado, 3457.88);
+  assert.equal(g.previsto, 0);
+  assert.deepEqual(g.porTipo, [{ tipo: 'CASA', total: 2880 }, { tipo: 'COMIDA', total: 577.88 }]);
+});
+
+test('gastos: datas futuras são previstas, passadas são realizadas', () => {
+  const rows = [
+    ['DATA', 'SAIDA', 'VALOR'],
+    ['20/11', 'Mercado 1', 'R$ 500,00'],
+    ['30/12', 'Gelo', 'R$ 40,00'],
+  ];
+  const g = S.parseSaidas(rows, { tripYear: 2026, hoje: '2026-11-11' });
   assert.equal(g.total, 540);
   assert.equal(g.realizado, 0);
   assert.equal(g.previsto, 540);
   assert.deepEqual(g.itens.map((i) => i.descricao), ['Mercado 1', 'Gelo']);
 
-  const later = S.parseSaidas(fx.saidas, { tripYear: 2026, hoje: '2026-12-01' });
+  const later = S.parseSaidas(rows, { tripYear: 2026, hoje: '2026-12-01' });
   assert.equal(later.realizado, 500);
   assert.equal(later.previsto, 40);
 });
