@@ -1,0 +1,12 @@
+{
+  "name": "reveillon-dashboard",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Dashboard somente leitura do Réveillon, alimentado por uma planilha do Google",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "test": "node --test test/sheet.test.js",
+    "dev": "node scripts/dev.js",
+    "dev:mock": "MOCK=1 node scripts/dev.js"
+  }
+}
