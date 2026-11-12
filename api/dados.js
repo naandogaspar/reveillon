@@ -5,7 +5,7 @@ const { loadDashboard, DEFAULT_SHEET_ID } = require('../lib/sheet');
 
 // Cache em memória (por instância da função) para não consultar o Google a cada visita.
 let memo = null;
-const MEMO_MS = 60 * 1000;
+const MEMO_MS = 15 * 1000;
 
 function samePassword(given, expected) {
   const a = crypto.createHash('sha256').update(String(given || '')).digest();
@@ -26,13 +26,14 @@ module.exports = async function handler(req, res) {
     const tripYear = Number(process.env.TRIP_YEAR) || 2026;
 
     if (!memo || Date.now() - memo.at > MEMO_MS) {
-      memo = { at: Date.now(), data: await loadDashboard({ sheetId, tripYear }) };
+      const gids = { pagantes: process.env.GID_PAGANTES, saidas: process.env.GID_SAIDAS, cerveja: process.env.GID_CERVEJA };
+      memo = { at: Date.now(), data: await loadDashboard({ sheetId, tripYear, gids }) };
     }
 
     // Com senha, a resposta nunca pode ficar em cache compartilhado (CDN).
     res.setHeader(
       'Cache-Control',
-      password ? 'private, max-age=30' : 'public, s-maxage=60, stale-while-revalidate=300',
+      password ? 'private, max-age=15' : 'public, s-maxage=15, stale-while-revalidate=30',
     );
     return res.status(200).json({
       titulo: process.env.TRIP_TITLE || 'Réveillon 2027',

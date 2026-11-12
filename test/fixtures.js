@@ -44,20 +44,19 @@ const pagantes = [
 ];
 
 const saidas = [
-  ['DATA', 'SAIDA', 'VALOR'],
-  ['20/11', 'Mercado 1', 'R$ 500,00'],
-  ['30/12', 'Gelo', 'R$ 40,00'],
+  ['DATA', 'SAIDA', 'VALOR', 'OBS'],
+  ['05/11', 'COMPRAS BASE 1', 'R$ 320,50', 'COMPRA DE ITENS NÃO PERECIVEIS'],
+  ['10/11', 'MERCADO DESCARTAVEIS', 'R$ 257,38', 'COMPRA DE MATERIAL DE APOIO, COPOS, PRATOS, TALHES, ETC.'],
 ];
 
-const menu = [
-  ['MENU REVEILLON 2026'],
-  ['DATA', 'ALMOÇO', 'JANTA'],
-  ['30/12', 'Macarrão com salsicha', 'Churrasco'],
-  ['31/12', 'Strogonoffe de frango', 'Peru + Salada de bacalhau + salpicão + Tender + Churrasco'],
-  ['01/01', 'Lasanha + salada verde', 'Caldos e Petiscos'],
-  ['02/01', 'Filé de peixe  + Tabule', 'Churrasco'],
-  ['03/01', 'Fricassê / Risoto', 'Churrasco'],
-  ['04/01', 'Churrasco', '----'],
+const cerveja = [
+  ['ADULTOS', 'ENGR.', 'QTD.', 'ML.', 'LITOS'],
+  ['Thalita', '0', '0', '0,35', '0'],
+  ['Amanda', '3', '18', '0,35', '18,9'],
+  ['Fernando', '3', '18', '0,35', '18,9'],
+  ['Fernando', '1', '12', '0,35', '4,2'],
+  ['', '', '', '', '0'],
+  ['', '', '', '', '0'],
 ];
 
-module.exports = { pagantes, saidas, menu };
+module.exports = { pagantes, saidas, cerveja };

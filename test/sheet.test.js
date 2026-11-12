@@ -6,6 +6,7 @@ const S = require('../lib/sheet');
 const fx = require('./fixtures');
 
 const NOW = new Date('2026-11-11T23:00:00Z'); // 11/11/2026, 20h em São Paulo
+const round = (n) => Math.round(n * 100) / 100;
 
 test('parseMoney entende os formatos da planilha', () => {
   assert.equal(S.parseMoney('R$ 533,33'), 533.33);
@@ -40,6 +41,7 @@ test('pagamentos: totais batem com a planilha atual', () => {
   assert.equal(p.casa.pessoas, 18);
   assert.equal(p.casa.valor, 9599.94);
   assert.equal(p.casa.pago, 4273.66);
+  assert.equal(p.casa.recebido, 4273.66);
   assert.equal(p.casa.pendente, 5326.28);
   assert.equal(Math.round(p.casa.percentual), 45);
 
@@ -122,40 +124,79 @@ test('pagamento acima do valor não gera pendente negativo', () => {
   assert.equal(p.grupos[0].pessoas[0].casa.excedente, 30);
 });
 
-test('gastos: datas futuras são previstas, passadas são realizadas', () => {
-  const g = S.parseSaidas(fx.saidas, { tripYear: 2026, hoje: '2026-11-11' });
-  assert.equal(g.total, 540);
-  assert.equal(g.realizado, 0);
-  assert.equal(g.previsto, 540);
-  assert.deepEqual(g.itens.map((i) => i.descricao), ['Mercado 1', 'Gelo']);
-
-  const later = S.parseSaidas(fx.saidas, { tripYear: 2026, hoje: '2026-12-01' });
-  assert.equal(later.realizado, 500);
-  assert.equal(later.previsto, 40);
+test('gastos: lê DATA, SAIDA, VALOR e OBS (sem coluna TIPO)', () => {
+  const g = S.parseSaidas(fx.saidas, { tripYear: 2026 });
+  assert.deepEqual(g.itens.map((i) => i.descricao), ['COMPRAS BASE 1', 'MERCADO DESCARTAVEIS']);
+  assert.deepEqual(g.itens.map((i) => i.valor), [320.5, 257.38]);
+  assert.equal(g.itens[0].obs, 'COMPRA DE ITENS NÃO PERECIVEIS');
+  assert.equal(g.itens[0].iso, '2026-11-05');
+  assert.equal(g.total, 577.88);
+  assert.deepEqual(g.avisos, []);
 });
 
-test('gastos: coluna STATUS opcional tem prioridade', () => {
-  const rows = [
-    ['DATA', 'SAIDA', 'VALOR', 'STATUS'],
-    ['20/11', 'Mercado 1', 'R$ 500,00', 'pago'],
-    ['30/12', 'Gelo', 'R$ 40,00', 'previsto'],
-  ];
-  const g = S.parseSaidas(rows, { tripYear: 2026, hoje: '2026-11-11' });
-  assert.equal(g.realizado, 500);
-  assert.equal(g.previsto, 40);
+test('gastos: saldo da comida (arrecadado - gastos), pode ficar negativo', () => {
+  const d = S.buildDashboard(fx, { tripYear: 2026, now: NOW });
+  const g = d.gastos;
+  assert.equal(g.total, 577.88);
+  assert.equal(g.comida.recebido, 400);
+  assert.equal(g.comida.saldo, -177.88);
+  assert.equal(g.comida.negativo, true);
+  assert.equal(g.comida.percentualUsado, 100); // barra limitada a 100%
+  assert.deepEqual(d.avisos, []);
 });
 
-test('cardápio e datas da viagem', () => {
-  const m = S.parseMenu(fx.menu, { tripYear: 2026 });
-  assert.equal(m.titulo, 'MENU REVEILLON 2026');
-  assert.equal(m.dias.length, 6);
-  assert.equal(m.dias[0].almoco, 'Macarrão com salsicha');
-  assert.equal(m.dias[5].janta, null); // "----" vira vazio
+test('gastos: saldo positivo e percentual usado', () => {
+  const rows = [['DATA', 'SAIDA', 'VALOR', 'OBS'], ['02/11', 'Gelo', 'R$ 100,00', '']];
+  const d = S.buildDashboard({ pagantes: fx.pagantes, saidas: rows }, { tripYear: 2026, now: NOW });
+  assert.equal(d.gastos.comida.saldo, 300);
+  assert.equal(d.gastos.comida.negativo, false);
+  assert.equal(d.gastos.comida.percentualUsado, 25);
+});
 
+test('gastos: sem cabeçalho assume DATA, SAIDA, VALOR, OBS; coluna TIPO antiga é ignorada', () => {
+  const g = S.parseSaidas([['5/11', 'Gelo', 'R$ 40,00', 'obs']], { tripYear: 2026 });
+  assert.equal(g.itens[0].valor, 40);
+  const legado = S.parseSaidas([['DATA', 'TIPO', 'SAIDA', 'VALOR', 'OBS'], ['5/11', 'COMIDA', 'Gelo', 'R$ 40,00', 'x']], { tripYear: 2026 });
+  assert.equal(legado.itens[0].descricao, 'Gelo');
+  assert.equal(legado.itens[0].valor, 40);
+});
+
+test('gastos: colunas são achadas pelo cabeçalho mesmo fora de ordem', () => {
+  const rows = [['VALOR', 'SAIDA', 'DATA', 'OBS'], ['R$ 40,00', 'Gelo', '30/12', 'Gelo para a virada']];
+  const g = S.parseSaidas(rows, { tripYear: 2026 });
+  assert.equal(g.itens[0].valor, 40);
+  assert.equal(g.itens[0].iso, '2026-12-30');
+});
+
+test('parseNumero entende vírgula decimal', () => {
+  assert.equal(S.parseNumero('18,9'), 18.9);
+  assert.equal(S.parseNumero('1.234,5'), 1234.5);
+  assert.equal(S.parseNumero('0'), 0);
+  assert.equal(S.parseNumero('abc'), null);
+  assert.equal(S.parseNumero(''), null);
+});
+
+test('cerveja: QTD. vira LATAS, descarta linhas sem nome e soma todas as colunas numéricas (menos ML.)', () => {
+  const c = S.buildDashboard(fx, { tripYear: 2026, now: NOW }).cerveja;
+  assert.deepEqual(c.colunas.map((x) => x.titulo), ['ADULTOS', 'ENGR.', 'LATAS', 'ML.', 'LITROS']);
+  assert.deepEqual(c.colunas.map((x) => x.tipo), ['texto', 'numero', 'numero', 'numero', 'numero']);
+  assert.equal(c.linhas.length, 4); // duas linhas vazias descartadas, nomes repetidos mantidos
+  assert.equal(c.linhas[1][4].texto, '18,9');
+  assert.equal(c.linhas[1][4].numero, 18.9);
+  assert.deepEqual(c.totais, { 1: 7, 2: 48, 4: 42 });
+  assert.equal(c.litros, 42);
+  assert.equal(c.latas, 48);
+});
+
+test('cerveja: ausente vira null e aba vazia não quebra', () => {
+  assert.equal(S.buildDashboard({ pagantes: fx.pagantes, saidas: fx.saidas }, { now: NOW }).cerveja, null);
+  assert.deepEqual(S.parseCerveja([]), { colunas: [], linhas: [], totais: {}, litros: null, latas: null });
+});
+
+test('datas da viagem são fixas', () => {
   const d = S.buildDashboard(fx, { tripYear: 2026, now: NOW });
   assert.equal(d.hoje, '2026-11-11');
-  assert.equal(d.viagem.inicio, '2026-12-30');
-  assert.equal(d.viagem.fim, '2027-01-04');
+  assert.deepEqual(d.viagem, { inicio: '2026-12-30', fim: '2027-01-03' });
 });
 
 test('hojeSaoPaulo usa o fuso de São Paulo', () => {

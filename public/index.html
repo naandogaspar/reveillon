@@ -3,10 +3,11 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="color-scheme" content="light dark">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#0A1128">
   <meta name="robots" content="noindex, nofollow">
-  <title>Reveillon 2027</title>
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230086A0'/%3E%3Cpath d='M16 5l2.6 8.4L27 16l-8.4 2.6L16 27l-2.6-8.4L5 16l8.4-2.6z' fill='%23F6F7F4'/%3E%3C/svg%3E">
+  <title>Réveillon 2027</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230A1128'/%3E%3Cpath d='M16 5l2.6 8.4L27 16l-8.4 2.6L16 27l-2.6-8.4L5 16l8.4-2.6z' fill='%23E8CB8A'/%3E%3C/svg%3E">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Instrument+Sans:wght@400..700&display=swap">
@@ -15,17 +16,22 @@
 <body>
   <a class="skip" href="#main">Ir para o conteúdo</a>
   <header class="top">
-    <div class="wrap top-in">
-      <a class="brand" id="brand" href="#inicio">Reveillon 2027</a>
+    <div class="wrap">
+      <div class="masthead">
+        <span class="logo" data-icon="champagne" aria-hidden="true"></span>
+        <p class="brand" id="brand">Réveillon 2027</p>
+      </div>
       <nav class="tabs" aria-label="Seções">
-        <a href="#inicio" data-route="inicio">Início</a>
-        <a href="#casa" data-route="casa"><span class="long">Pagamento casa</span><span class="short">Casa</span></a>
-        <a href="#comida" data-route="comida"><span class="long">Pagamento comida</span><span class="short">Comida</span></a>
-        <a href="#gastos" data-route="gastos">Gastos</a>
+        <a href="#inicio" data-route="inicio"><span class="tab-ico" data-icon="gauge" aria-hidden="true"></span><span>Início</span></a>
+        <a href="#casa" data-route="casa"><span class="tab-ico" data-icon="house" aria-hidden="true"></span><span>Casa</span></a>
+        <a href="#comida" data-route="comida"><span class="tab-ico" data-icon="utensils" aria-hidden="true"></span><span>Comida</span></a>
+        <a href="#cerveja" data-route="cerveja"><span class="tab-ico" data-icon="beer" aria-hidden="true"></span><span>Cerveja</span></a>
+        <a href="#gastos" data-route="gastos"><span class="tab-ico" data-icon="receipt" aria-hidden="true"></span><span>Gastos</span></a>
       </nav>
     </div>
   </header>
   <main id="main" class="wrap" tabindex="-1"><p class="state">Carregando…</p></main>
+  <script src="/icons.js"></script>
   <script src="/app.js"></script>
 </body>
 </html>
