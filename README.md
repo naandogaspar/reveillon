@@ -22,7 +22,7 @@ Abas: Início, Casa, Comida e Gastos. Tema escuro (azul-marinho com detalhes dou
 | `TRIP_YEAR` | Ano de início da viagem; datas sem ano (30/12, 01/01) usam isto. | `2026` |
 | `TRIP_TITLE` | Título no topo. | `Réveillon 2027` |
 | `TRIP_LOCATION` | Local mostrado ao lado das datas (ex.: `Maricá, RJ`). | vazio |
-| `GID_PAGANTES`, `GID_SAIDAS` | Número `gid=` de cada aba (aparece na URL ao abrir a aba). Só mude se usar outra planilha. | abas da planilha padrão |
+| `GID_PAGANTES`, `GID_SAIDAS`, `GID_CERVEJA` | Número `gid=` de cada aba (aparece na URL ao abrir a aba). Só mude se usar outra planilha. | abas da planilha padrão |
 
 Depois de mudar uma variável, faça um novo deploy.
 
@@ -37,10 +37,12 @@ Depois de mudar uma variável, faça um novo deploy.
   Dá para inserir linhas e colunas. Os saldos "pendente" são recalculados (valor − pago);
   se a planilha divergir do cálculo, o aviso aparece em `/api/dados` no campo `avisos`.
   Linhas `Total`, `Endereço:` e linhas sem nome são ignoradas. `--` significa "não se aplica".
-- **SAIDAS**: `DATA` (dd/mm), `TIPO`, `SAIDA` (rótulo), `VALOR` e `OBS` (descrição completa).
-  A aba **Gastos** do site controla só a **comida**: mostra as saídas com `TIPO` = `COMIDA` e o saldo
-  (*arrecadado da comida − gastos de comida*), que pode ficar negativo. Lançamentos com `TIPO` = `CASA`
-  ficam só na planilha e não entram no site. Qualquer outro tipo é ignorado e gera aviso em `/api/dados`.
+- **SAIDAS**: `DATA` (dd/mm), `SAIDA` (rótulo), `VALOR` e `OBS` (descrição completa). Todas as saídas
+  são da comida: a aba **Gastos** mostra a lista e o saldo (*arrecadado da comida − gastos*), que pode
+  ficar negativo. Uma coluna `TIPO` antiga, se existir, é ignorada.
+- **CERVEJA**: cópia da aba no site. A primeira linha é o cabeçalho (`ADULTOS`, `ENGR.`, `QTD.`, `ML.`, `LITROS`),
+  linhas sem nome são descartadas e o total é somado para `QTD.` e `LITROS`. Dá para ordenar por qualquer
+  coluna (começa por nome). Se a aba falhar, o resto do painel continua funcionando.
 - Nomes e textos aparecem exatamente como estão na planilha.
 
 ## Rodar no computador

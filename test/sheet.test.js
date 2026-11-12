@@ -124,77 +124,71 @@ test('pagamento acima do valor não gera pendente negativo', () => {
   assert.equal(p.grupos[0].pessoas[0].casa.excedente, 30);
 });
 
-test('gastos: lê DATA, TIPO, SAIDA, VALOR e OBS', () => {
+test('gastos: lê DATA, SAIDA, VALOR e OBS (sem coluna TIPO)', () => {
   const g = S.parseSaidas(fx.saidas, { tripYear: 2026 });
-  assert.equal(g.itens.length, 3);
-  assert.deepEqual(g.itens.map((i) => i.descricao), ['SINAL', 'COMPRAS BASE 1', 'MERCADO DESCARTAVEIS']);
-  assert.deepEqual(g.itens.map((i) => i.valor), [2880, 320.5, 257.38]);
-  assert.deepEqual(g.itens.map((i) => i.tipoChave), ['casa', 'comida', 'comida']);
-  assert.equal(g.itens[0].obs, 'ADIANTAMENTO DO SINAL DA CASA');
-  assert.equal(g.itens[0].iso, '2026-10-05');
-  assert.equal(g.total, 3457.88);
-  assert.deepEqual(g.gasto, { casa: 2880, comida: 577.88, outros: 0 });
+  assert.deepEqual(g.itens.map((i) => i.descricao), ['COMPRAS BASE 1', 'MERCADO DESCARTAVEIS']);
+  assert.deepEqual(g.itens.map((i) => i.valor), [320.5, 257.38]);
+  assert.equal(g.itens[0].obs, 'COMPRA DE ITENS NÃO PERECIVEIS');
+  assert.equal(g.itens[0].iso, '2026-11-05');
+  assert.equal(g.total, 577.88);
   assert.deepEqual(g.avisos, []);
 });
 
-test('gastos: só a comida entra na aba e no saldo', () => {
+test('gastos: saldo da comida (arrecadado - gastos), pode ficar negativo', () => {
   const d = S.buildDashboard(fx, { tripYear: 2026, now: NOW });
   const g = d.gastos;
-  assert.deepEqual(g.itens.map((i) => i.descricao), ['COMPRAS BASE 1', 'MERCADO DESCARTAVEIS']);
   assert.equal(g.total, 577.88);
   assert.equal(g.comida.recebido, 400);
-  assert.equal(g.comida.gasto, 577.88);
   assert.equal(g.comida.saldo, -177.88);
   assert.equal(g.comida.negativo, true);
   assert.equal(g.comida.percentualUsado, 100); // barra limitada a 100%
-  assert.equal(g.casa, undefined);
-  assert.equal(g.saldo, undefined);
-  assert.deepEqual(g.outros, { total: 0, qtd: 0 });
   assert.deepEqual(d.avisos, []);
 });
 
 test('gastos: saldo positivo e percentual usado', () => {
-  const rows = [
-    ['DATA', 'TIPO', 'SAIDA', 'VALOR', 'OBS'],
-    ['02/11', 'COMIDA', 'Gelo', 'R$ 100,00', ''],
-  ];
+  const rows = [['DATA', 'SAIDA', 'VALOR', 'OBS'], ['02/11', 'Gelo', 'R$ 100,00', '']];
   const d = S.buildDashboard({ pagantes: fx.pagantes, saidas: rows }, { tripYear: 2026, now: NOW });
   assert.equal(d.gastos.comida.saldo, 300);
   assert.equal(d.gastos.comida.negativo, false);
   assert.equal(d.gastos.comida.percentualUsado, 25);
 });
 
-test('gastos: tipo em minúsculas vale; CASA fica fora; tipo desconhecido gera aviso', () => {
-  const rows = [
-    ['DATA', 'TIPO', 'SAIDA', 'VALOR', 'OBS'],
-    ['01/11', ' casa ', 'Sinal', 'R$ 100,00', ''],
-    ['02/11', 'Comida', 'Gelo', 'R$ 50,00', ''],
-    ['03/11', 'BEBIDA', 'Cerveja', 'R$ 70,00', ''],
-  ];
-  const d = S.buildDashboard({ pagantes: fx.pagantes, saidas: rows }, { tripYear: 2026, now: NOW });
-  assert.deepEqual(d.gastos.itens.map((i) => i.descricao), ['Gelo']);
-  assert.equal(d.gastos.total, 50);
-  assert.equal(d.gastos.comida.saldo, 350);
-  assert.deepEqual(d.gastos.outros, { total: 70, qtd: 1 });
-  assert.equal(d.avisos.length, 1);
-  assert.match(d.avisos[0], /BEBIDA/);
-});
-
-test('gastos: sem linha de cabeçalho, assume o layout DATA, TIPO, SAIDA, VALOR, OBS', () => {
-  const g = S.parseSaidas([['5/10', 'CASA', 'SINAL', 'R$ 2.880,00', 'obs']], { tripYear: 2026 });
-  assert.equal(g.itens[0].valor, 2880);
-  assert.equal(g.itens[0].tipoChave, 'casa');
+test('gastos: sem cabeçalho assume DATA, SAIDA, VALOR, OBS; coluna TIPO antiga é ignorada', () => {
+  const g = S.parseSaidas([['5/11', 'Gelo', 'R$ 40,00', 'obs']], { tripYear: 2026 });
+  assert.equal(g.itens[0].valor, 40);
+  const legado = S.parseSaidas([['DATA', 'TIPO', 'SAIDA', 'VALOR', 'OBS'], ['5/11', 'COMIDA', 'Gelo', 'R$ 40,00', 'x']], { tripYear: 2026 });
+  assert.equal(legado.itens[0].descricao, 'Gelo');
+  assert.equal(legado.itens[0].valor, 40);
 });
 
 test('gastos: colunas são achadas pelo cabeçalho mesmo fora de ordem', () => {
-  const rows = [
-    ['VALOR', 'SAIDA', 'DATA', 'OBS', 'TIPO'],
-    ['R$ 40,00', 'Gelo', '30/12', 'Gelo para a virada', 'COMIDA'],
-  ];
+  const rows = [['VALOR', 'SAIDA', 'DATA', 'OBS'], ['R$ 40,00', 'Gelo', '30/12', 'Gelo para a virada']];
   const g = S.parseSaidas(rows, { tripYear: 2026 });
   assert.equal(g.itens[0].valor, 40);
-  assert.equal(g.itens[0].tipoChave, 'comida');
   assert.equal(g.itens[0].iso, '2026-12-30');
+});
+
+test('parseNumero entende vírgula decimal', () => {
+  assert.equal(S.parseNumero('18,9'), 18.9);
+  assert.equal(S.parseNumero('1.234,5'), 1234.5);
+  assert.equal(S.parseNumero('0'), 0);
+  assert.equal(S.parseNumero('abc'), null);
+  assert.equal(S.parseNumero(''), null);
+});
+
+test('cerveja: copia a aba, descarta linhas sem nome e soma QTD. e LITROS', () => {
+  const c = S.buildDashboard(fx, { tripYear: 2026, now: NOW }).cerveja;
+  assert.deepEqual(c.colunas.map((x) => x.titulo), ['ADULTOS', 'ENGR.', 'QTD.', 'ML.', 'LITROS']);
+  assert.deepEqual(c.colunas.map((x) => x.tipo), ['texto', 'numero', 'numero', 'numero', 'numero']);
+  assert.equal(c.linhas.length, 4); // duas linhas vazias descartadas, nomes repetidos mantidos
+  assert.equal(c.linhas[1][4].texto, '18,9');
+  assert.equal(c.linhas[1][4].numero, 18.9);
+  assert.deepEqual(c.totais, { 2: 48, 4: 42 });
+});
+
+test('cerveja: ausente vira null e aba vazia não quebra', () => {
+  assert.equal(S.buildDashboard({ pagantes: fx.pagantes, saidas: fx.saidas }, { now: NOW }).cerveja, null);
+  assert.deepEqual(S.parseCerveja([]), { colunas: [], linhas: [], totais: {} });
 });
 
 test('datas da viagem são fixas', () => {

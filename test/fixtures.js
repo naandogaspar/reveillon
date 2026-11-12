@@ -44,10 +44,19 @@ const pagantes = [
 ];
 
 const saidas = [
-  ['DATA', 'TIPO', 'SAIDA', 'VALOR', 'OBS'],
-  ['5/10', 'CASA', 'SINAL', 'R$ 2.880,00', 'ADIANTAMENTO DO SINAL DA CASA'],
-  ['05/11', 'COMIDA', 'COMPRAS BASE 1', 'R$ 320,50', 'COMPRA DE ITENS NÃO PERECIVEIS'],
-  ['10/11', 'COMIDA', 'MERCADO DESCARTAVEIS', 'R$ 257,38', 'COMPRA DE MATERIAL DE APOIO, COPOS, PRATOS, TALHES, ETC.'],
+  ['DATA', 'SAIDA', 'VALOR', 'OBS'],
+  ['05/11', 'COMPRAS BASE 1', 'R$ 320,50', 'COMPRA DE ITENS NÃO PERECIVEIS'],
+  ['10/11', 'MERCADO DESCARTAVEIS', 'R$ 257,38', 'COMPRA DE MATERIAL DE APOIO, COPOS, PRATOS, TALHES, ETC.'],
 ];
 
-module.exports = { pagantes, saidas };
+const cerveja = [
+  ['ADULTOS', 'ENGR.', 'QTD.', 'ML.', 'LITROS'],
+  ['Thalita', '0', '0', '0,35', '0'],
+  ['Amanda', '3', '18', '0,35', '18,9'],
+  ['Fernando', '3', '18', '0,35', '18,9'],
+  ['Fernando', '1', '12', '0,35', '4,2'],
+  ['', '', '', '', '0'],
+  ['', '', '', '', '0'],
+];
+
+module.exports = { pagantes, saidas, cerveja };

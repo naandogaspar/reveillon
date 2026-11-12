@@ -32,11 +32,13 @@
     inicio: { title: 'Início', render: renderHome },
     casa: { title: 'Casa', render: () => renderPeople('casa') },
     comida: { title: 'Comida', render: () => renderPeople('comida') },
+    cerveja: { title: 'Cerveja', render: renderBeer },
     gastos: { title: 'Gastos', render: renderExpenses },
   };
 
   let data = null;
   const filter = { q: '', status: 'todos' };
+  const beerSort = { col: 0, dir: 1 }; // começa por nome, A-Z
 
   // ------------------------------------------------------------------ peças
   const STATUS_ICON = { quitado: 'check', parcial: 'half', pendente: 'empty', negativo: 'alert' };
@@ -235,7 +237,7 @@
           <div class="row-bottom"><span class="num">${esc(i.data || 'Sem data')}</span></div>
           ${i.obs ? `<p class="sub obs">${esc(i.obs)}</p>` : ''}
         </li>`).join('')}</ul>`
-      : '<p class="empty">Nenhuma saída de comida lançada ainda. Elas aparecem aqui quando forem adicionadas na aba SAIDAS da planilha, com TIPO COMIDA.</p>';
+      : '<p class="empty">Nenhuma saída de comida lançada ainda. Elas aparecem aqui quando forem adicionadas na aba SAIDAS da planilha.</p>';
 
     return `
       <div><h1 class="page">Gastos da comida</h1>
@@ -253,13 +255,67 @@
         <div class="gauge-bottom num"><span>Arrecadado ${money(c.recebido)}</span><span class="strong">Gastos ${money(c.gasto)}</span></div>
         <p class="sub">${resumo}</p>
       </section>
-      ${g.outros.qtd ? `<p class="note">${ic('info')}<span>${g.outros.qtd} ${g.outros.qtd === 1 ? 'lançamento tem' : 'lançamentos têm'} TIPO diferente de CASA e COMIDA (${money(g.outros.total)}) e não aparecem aqui. Confira a aba SAIDAS.</span></p>` : ''}
       <section class="panel" aria-labelledby="h-lancamentos">
         ${panelHead('receipt', '<span id="h-lancamentos">Saídas da comida</span>')}
         <p class="panel-sub num">${money(g.total)} em ${n} ${n === 1 ? 'saída' : 'saídas'}</p>
         ${lista}
       </section>
       ${footer()}`;
+  }
+
+  // -------------------------------------------------------------------- cerveja
+  // Cópia da aba CERVEJA da planilha; clicar no título de uma coluna ordena por ela.
+  function beerRows(b) {
+    const c = b.colunas[beerSort.col];
+    const idx = b.linhas.map((l, i) => ({ l, i }));
+    idx.sort((x, y) => {
+      const a = x.l[beerSort.col], z = y.l[beerSort.col];
+      let r;
+      if (c.tipo === 'numero') r = (a.numero ?? -Infinity) - (z.numero ?? -Infinity) || 0;
+      else r = byName.compare(a.texto, z.texto);
+      return (r || byName.compare(x.l[0].texto, y.l[0].texto) || x.i - y.i) * (r ? beerSort.dir : 1);
+    });
+    return idx.map((x) => x.l);
+  }
+
+  function beerTable(b) {
+    const head = b.colunas.map((c, i) => {
+      const on = beerSort.col === i;
+      const icon = on ? (beerSort.dir === 1 ? 'sort-up' : 'sort-down') : 'sort';
+      const sort = on ? ` aria-sort="${beerSort.dir === 1 ? 'ascending' : 'descending'}"` : '';
+      return `<th scope="col" class="${c.tipo === 'numero' ? 'num' : ''}"${sort}><button type="button" data-col="${i}">${esc(c.titulo)}${ic(icon)}</button></th>`;
+    }).join('');
+    const body = beerRows(b).map((l) => `<tr>${l.map((cel, i) => `<td class="${b.colunas[i].tipo === 'numero' ? 'num' : ''}">${esc(cel.texto)}</td>`).join('')}</tr>`).join('');
+    const foot = Object.keys(b.totais).length
+      ? `<tfoot><tr>${b.colunas.map((c, i) => `<td class="${c.tipo === 'numero' ? 'num' : ''}">${i === 0 ? 'Total' : (i in b.totais ? esc(String(b.totais[i]).replace('.', ',')) : '')}</td>`).join('')}</tr></tfoot>`
+      : '';
+    return `<div class="table-wrap"><table class="sheet"><thead><tr>${head}</tr></thead><tbody>${body}</tbody>${foot}</table></div>`;
+  }
+
+  function renderBeer() {
+    const b = data.cerveja;
+    const corpo = !b || !b.colunas.length
+      ? '<p class="empty">A aba CERVEJA não pôde ser lida agora. Tente de novo em instantes.</p>'
+      : (b.linhas.length ? `<div id="beer">${beerTable(b)}</div>` : '<p class="empty">Nenhuma linha na aba CERVEJA ainda.</p>');
+    return `
+      <div><h1 class="page">Cerveja</h1>
+      <p class="lede">Cópia da aba CERVEJA da planilha. Toque no título de uma coluna para ordenar.</p></div>
+      <section class="panel panel--tabela anim" aria-label="Tabela de cerveja">${corpo}</section>
+      ${footer()}`;
+  }
+
+  function bindBeer() {
+    const box = document.getElementById('beer');
+    if (!box) return;
+    box.addEventListener('click', (e) => {
+      const btn = e.target.closest('button[data-col]');
+      if (!btn) return;
+      const col = Number(btn.dataset.col);
+      if (beerSort.col === col) beerSort.dir *= -1; else { beerSort.col = col; beerSort.dir = 1; }
+      box.innerHTML = beerTable(data.cerveja);
+      const again = box.querySelector(`button[data-col="${col}"]`);
+      if (again) again.focus();
+    });
   }
 
   // -------------------------------------------------------- estados e carga
@@ -328,6 +384,7 @@
     main.innerHTML = view.render();
     if (route === 'casa' || route === 'comida') bindPeople(route);
     if (route === 'inicio') bindHome();
+    if (route === 'cerveja') bindBeer();
     if (resetScroll) { window.scrollTo(0, 0); main.focus({ preventScroll: true }); } else { window.scrollTo(0, y); }
   }
 

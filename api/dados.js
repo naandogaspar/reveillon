@@ -26,7 +26,7 @@ module.exports = async function handler(req, res) {
     const tripYear = Number(process.env.TRIP_YEAR) || 2026;
 
     if (!memo || Date.now() - memo.at > MEMO_MS) {
-      const gids = { pagantes: process.env.GID_PAGANTES, saidas: process.env.GID_SAIDAS };
+      const gids = { pagantes: process.env.GID_PAGANTES, saidas: process.env.GID_SAIDAS, cerveja: process.env.GID_CERVEJA };
       memo = { at: Date.now(), data: await loadDashboard({ sheetId, tripYear, gids }) };
     }
 
