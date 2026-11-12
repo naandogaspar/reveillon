@@ -41,7 +41,7 @@ Depois de mudar uma variável, faça um novo deploy.
   são da comida: a aba **Gastos** mostra a lista e o saldo (*arrecadado da comida − gastos*), que pode
   ficar negativo. Uma coluna `TIPO` antiga, se existir, é ignorada.
 - **CERVEJA**: cópia da aba no site. A primeira linha é o cabeçalho (`ADULTOS`, `ENGR.`, `QTD.`, `ML.`, `LITROS`),
-  linhas sem nome são descartadas e o total é somado para `QTD.` e `LITROS`. Dá para ordenar por qualquer
+  linhas sem nome são descartadas e `QTD.` aparece como `LATAS`, o rodapé soma todas as colunas numéricas (menos `ML.`) e o card da Início mostra o total de `LITROS`. Dá para ordenar por qualquer
   coluna (começa por nome). Se a aba falhar, o resto do painel continua funcionando.
 - Nomes e textos aparecem exatamente como estão na planilha.
 

@@ -117,7 +117,20 @@
         </div>
         <p class="sr-only" role="status" id="copy-status"></p>
       </section>
-      ${countdownHtml()}`;
+      ${countdownHtml()}
+      ${beerCard()}`;
+  }
+
+  // Card da Início: total de litros de cerveja (soma da coluna LITROS da aba CERVEJA).
+  function beerCard() {
+    const b = data.cerveja;
+    if (!b || b.litros == null) return '';
+    const litros = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 2 }).format(b.litros);
+    return `<section class="panel kpi beer-card" aria-label="Total de cerveja">
+      <p class="kpi-label">${ic('beer')}<span>Cerveja</span></p>
+      <p class="kpi-value num">${litros} L</p>
+      <p class="kpi-cap">total de litros</p>
+    </section>`;
   }
 
   async function copyText(text) {
@@ -190,7 +203,7 @@
     const nome = kind === 'casa' ? 'casa' : 'comida';
     const seg = (id, label) => `<button type="button" data-f="${id}" aria-pressed="${filter.status === id}">${label}</button>`;
     return `
-      <h1 class="page">Pagamento da ${nome}</h1>
+      <h1 class="page">${kind === 'casa' ? 'Pagamentos referente a Casa' : 'Pagamentos referente a Alimentação'}</h1>
       <div class="kpis anim">
         ${kpi('receipt', 'Previsto', money(t.valor), `${t.pessoas} pessoas`)}
         ${kpi('wallet', 'Pago', money(t.pago), `${pct(t.percentual)} do previsto`)}
@@ -240,8 +253,7 @@
       : '<p class="empty">Nenhuma saída de comida lançada ainda. Elas aparecem aqui quando forem adicionadas na aba SAIDAS da planilha.</p>';
 
     return `
-      <div><h1 class="page">Gastos da comida</h1>
-      <p class="lede">Controle do dinheiro da comida: o que foi arrecadado, o que já saiu e o que sobra.</p></div>
+      <h1 class="page">Saídas referente a Alimentação</h1>
       <div class="kpis anim">
         ${kpi('wallet', 'Arrecadado', money(c.recebido), `de ${money(comida.valor)} previstos`)}
         ${kpi('receipt', 'Gastos', money(c.gasto), `${n} ${n === 1 ? 'saída' : 'saídas'}`)}
@@ -298,8 +310,7 @@
       ? '<p class="empty">A aba CERVEJA não pôde ser lida agora. Tente de novo em instantes.</p>'
       : (b.linhas.length ? `<div id="beer">${beerTable(b)}</div>` : '<p class="empty">Nenhuma linha na aba CERVEJA ainda.</p>');
     return `
-      <div><h1 class="page">Cerveja</h1>
-      <p class="lede">Cópia da aba CERVEJA da planilha. Toque no título de uma coluna para ordenar.</p></div>
+      <h1 class="page">Cerveja</h1>
       <section class="panel panel--tabela anim" aria-label="Tabela de cerveja">${corpo}</section>
       ${footer()}`;
   }

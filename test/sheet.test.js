@@ -176,19 +176,20 @@ test('parseNumero entende vírgula decimal', () => {
   assert.equal(S.parseNumero(''), null);
 });
 
-test('cerveja: copia a aba, descarta linhas sem nome e soma QTD. e LITROS', () => {
+test('cerveja: QTD. vira LATAS, descarta linhas sem nome e soma todas as colunas numéricas (menos ML.)', () => {
   const c = S.buildDashboard(fx, { tripYear: 2026, now: NOW }).cerveja;
-  assert.deepEqual(c.colunas.map((x) => x.titulo), ['ADULTOS', 'ENGR.', 'QTD.', 'ML.', 'LITROS']);
+  assert.deepEqual(c.colunas.map((x) => x.titulo), ['ADULTOS', 'ENGR.', 'LATAS', 'ML.', 'LITROS']);
   assert.deepEqual(c.colunas.map((x) => x.tipo), ['texto', 'numero', 'numero', 'numero', 'numero']);
   assert.equal(c.linhas.length, 4); // duas linhas vazias descartadas, nomes repetidos mantidos
   assert.equal(c.linhas[1][4].texto, '18,9');
   assert.equal(c.linhas[1][4].numero, 18.9);
-  assert.deepEqual(c.totais, { 2: 48, 4: 42 });
+  assert.deepEqual(c.totais, { 1: 7, 2: 48, 4: 42 });
+  assert.equal(c.litros, 42);
 });
 
 test('cerveja: ausente vira null e aba vazia não quebra', () => {
   assert.equal(S.buildDashboard({ pagantes: fx.pagantes, saidas: fx.saidas }, { now: NOW }).cerveja, null);
-  assert.deepEqual(S.parseCerveja([]), { colunas: [], linhas: [], totais: {} });
+  assert.deepEqual(S.parseCerveja([]), { colunas: [], linhas: [], totais: {}, litros: null });
 });
 
 test('datas da viagem são fixas', () => {
