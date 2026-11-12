@@ -2,9 +2,14 @@
 
 Página somente leitura para os participantes acompanharem pagamentos e gastos.
 **A planilha do Google é o banco de dados**: você continua preenchendo nela e o dashboard
-mostra o que estiver lá (atualização em até alguns minutos).
+mostra o que estiver lá (atualização em cerca de 15 a 45 segundos, veja o fim deste arquivo).
 
-Abas: Início, Casa, Comida e Gastos. Tema escuro (azul-marinho com detalhes dourados).
+Abas: **Início** (endereço com botões, contagem regressiva ao vivo e totais de cerveja com piada),
+**Casa** e **Comida** (pagamentos por pessoa), **Cerveja** (tabela ordenável) e **Gastos**
+(saídas e saldo da alimentação). Tema escuro (azul-marinho com detalhes dourados).
+
+Fluxo de trabalho: cada push para o GitHub publica sozinho na Vercel (`main` vai para produção;
+as outras branches geram um endereço de preview).
 
 ## Publicar no Vercel
 
@@ -17,10 +22,10 @@ Abas: Início, Casa, Comida e Gastos. Tema escuro (azul-marinho com detalhes dou
 
 | Nome | Para que serve | Padrão |
 |---|---|---|
-| `DASHBOARD_PASSWORD` | Liga uma senha de acesso. Quem não souber a senha não vê nenhum dado. | sem senha |
+| `DASHBOARD_PASSWORD` | Liga uma senha única para o grupo. Sem ela, o site mostra a tela "Entrar" e não entrega nenhum dado. O navegador guarda a senha depois do primeiro acesso. | sem senha |
 | `SHEET_ID` | ID da planilha (trecho entre `/d/` e `/edit` na URL). | planilha "Reveillon 2027" |
 | `TRIP_YEAR` | Ano de início da viagem; datas sem ano (30/12, 01/01) usam isto. | `2026` |
-| `TRIP_TITLE` | Título no topo. | `Réveillon 2027` |
+| `TRIP_TITLE` | Título no topo (por padrão vem do código). | `Réveillon 2027` |
 | `TRIP_LOCATION` | Local mostrado ao lado das datas (ex.: `Maricá, RJ`). | vazio |
 | `GID_PAGANTES`, `GID_SAIDAS`, `GID_CERVEJA` | Número `gid=` de cada aba (aparece na URL ao abrir a aba). Só mude se usar outra planilha. | abas da planilha padrão |
 
@@ -40,9 +45,11 @@ Depois de mudar uma variável, faça um novo deploy.
 - **SAIDAS**: `DATA` (dd/mm), `SAIDA` (rótulo), `VALOR` e `OBS` (descrição completa). Todas as saídas
   são da comida: a aba **Gastos** mostra a lista e o saldo (*arrecadado da comida − gastos*), que pode
   ficar negativo. Uma coluna `TIPO` antiga, se existir, é ignorada.
-- **CERVEJA**: cópia da aba no site. A primeira linha é o cabeçalho (`ADULTOS`, `ENGR.`, `QTD.`, `ML.`, `LITROS`),
-  linhas sem nome são descartadas e `QTD.` aparece como `LATAS`, o rodapé soma todas as colunas numéricas (menos `ML.`) e o card da Início mostra o total de `LITROS`. Dá para ordenar por qualquer
-  coluna (começa por nome). Se a aba falhar, o resto do painel continua funcionando.
+- **CERVEJA**: cópia da aba no site, ordenável por qualquer coluna (começa por nome).
+  A primeira linha é o cabeçalho (`ADULTOS`, `ENGR.`, `QTD.`, `ML.`, `LITROS`); `QTD.` aparece como `LATAS`
+  e a grafia `LITOS` também é aceita. Linhas sem nome são descartadas. O rodapé soma as colunas numéricas
+  (menos `ML.`). O card da Início mostra o total de `LITROS` e de `LATAS` e uma piada de cerveja, escolhida
+  a cada carregamento (lista `JOKES` em `public/app.js`). Se a aba falhar, o resto do painel continua funcionando.
 - Nomes e textos aparecem exatamente como estão na planilha.
 
 ## Rodar no computador
@@ -59,6 +66,7 @@ PASSWORD=abc npm run dev   # testa a senha
 - Somente leitura: ninguém altera dados pelo dashboard.
 - Sem histórico: a planilha guarda só o total pago por pessoa, então não há gráfico por data.
 - A senha protege os **dados**; a página em si é pública, e a planilha continua acessível a quem tiver o link dela.
+- A senha é uma só para todo o grupo (não há conta por pessoa). Para trocar, mude `DASHBOARD_PASSWORD` e faça um novo deploy.
 
 ## Créditos
 
