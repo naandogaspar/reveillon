@@ -4,7 +4,7 @@ Página somente leitura para os participantes acompanharem pagamentos e gastos.
 **A planilha do Google é o banco de dados**: você continua preenchendo nela e o dashboard
 mostra o que estiver lá (atualização em até alguns minutos).
 
-Abas: Início, Pagamento casa, Pagamento comida e Gastos.
+Abas: Início, Casa, Comida e Gastos. Tema escuro (azul-marinho com detalhes dourados).
 
 ## Publicar no Vercel
 
@@ -56,3 +56,7 @@ PASSWORD=abc npm run dev   # testa a senha
 - Somente leitura: ninguém altera dados pelo dashboard.
 - Sem histórico: a planilha guarda só o total pago por pessoa, então não há gráfico por data.
 - A senha protege os **dados**; a página em si é pública, e a planilha continua acessível a quem tiver o link dela.
+
+## Créditos
+
+Ícones: [Font Awesome Free](https://fontawesome.com), licença [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Estão embutidos em `public/icons.js`.
