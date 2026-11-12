@@ -10,6 +10,8 @@
   const sentence = (s) => (s && s === s.toUpperCase() ? s.charAt(0) + s.slice(1).toLowerCase() : s);
   const ddmm = (iso) => (iso ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}` : '');
   const dayNumber = (iso) => Date.parse(`${iso}T00:00:00Z`) / 86400000;
+  // Ordem alfabética em português: ignora maiúsculas, acentos e pontuação (ex.: "(Cris )" fica no C).
+  const byName = new Intl.Collator('pt-BR', { sensitivity: 'base', numeric: true, ignorePunctuation: true });
 
   // Ícones: Font Awesome Free (CC BY 4.0), embutidos em icons.js.
   const ic = (name) => {
@@ -155,7 +157,7 @@
 
   function listHtml(kind) {
     const groups = data.pagamentos.grupos
-      .map((g) => ({ g, pessoas: g.pessoas.filter((x) => matches(x, kind)) }))
+      .map((g) => ({ g, pessoas: g.pessoas.filter((x) => matches(x, kind)).sort((a, b) => byName.compare(a.nome, b.nome)) }))
       .filter((x) => x.pessoas.length);
     if (!groups.length) {
       return `<p class="empty">${filter.q || filter.status !== 'todos' ? 'Ninguém corresponde a esse filtro.' : 'Nenhuma pessoa nesta lista ainda.'}</p>`;
