@@ -110,7 +110,7 @@ h1.page { font: 650 24px/1.15 var(--display); letter-spacing: -0.01em; }
 /* ------------------------------------------------------------------- endereço */
 .place { display: grid; gap: 18px; }
 .place-main { display: flex; align-items: center; gap: 14px; }
-.place-name { font: 600 20px/1.2 var(--display); letter-spacing: -0.01em; }
+.place-name { font-size: 28px; font-weight: 700; letter-spacing: -0.01em; margin: 0; }
 .place-addr { color: var(--ink-2); margin-top: 4px; overflow-wrap: anywhere; }
 .place-actions { display: flex; gap: 10px; flex-wrap: wrap; }
 .place-actions .btn { flex: 1 1 160px; }
@@ -123,7 +123,7 @@ h1.page { font: 650 24px/1.15 var(--display); letter-spacing: -0.01em; }
 .countdown { display: flex; align-items: center; gap: 22px; }
 .countdown-num { font: 700 clamp(72px, 16vw, 112px)/0.85 var(--display); letter-spacing: -0.05em; flex: none; }
 .countdown-text { font: 500 clamp(20px, 4.6vw, 26px)/1.2 var(--display); }
-.countdown-meta { display: flex; flex-wrap: wrap; gap: 6px 18px; margin-top: 10px; color: var(--ink-2); font: 400 15px/1.4 var(--text); }
+.countdown-meta { display: flex; flex-wrap: wrap; gap: 6px 18px; margin-top: 10px; color: var(--ink-2); font: 500 17.place-namepx/1.4 var(--text); }
 .countdown-meta span { display: inline-flex; align-items: center; gap: 8px; }
 .countdown-meta .i { color: var(--gold); }
 
@@ -267,8 +267,8 @@ main > * { min-width: 0; }
 .cd-cell { display: grid; gap: 6px; }
 .cd-num { font: 700 clamp(40px, 11vw, 76px)/0.95 var(--display); letter-spacing: -0.04em; }
 .cd-label { color: var(--ink-2); font-size: 14px; }
-.cd-foot { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: center; gap: 4px 18px; text-align: center; }
-.cd-foot .countdown-meta { margin-top: 0; }
+.cd-top { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 10px 18px; text-align: center; }
+.cd-top .countdown-meta { margin-top: 0; }
 .beer-card { display: grid; gap: 20px; }
 .beer-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 .beer-stat { display: grid; gap: 8px; align-content: start; }

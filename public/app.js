@@ -88,7 +88,7 @@
   function countdownHtml() {
     const { inicio, fim } = data.viagem || {};
     if (!inicio) return '';
-    const range = fim && fim !== inicio ? `${ddmm(inicio)} a ${ddmm(fim)}` : ddmm(inicio);
+    const range = fim && fim !== inicio ? `De: ${ddmm(inicio)} - Até: ${ddmm(fim)}` : ddmm(inicio);
     const meta = `<div class="countdown-meta"><span>${ic('calendar')}${range}</span></div>`;
     const today = dayNumber(data.hoje);
     const start = dayNumber(inicio);
@@ -96,8 +96,10 @@
     if (today < start) {
       const cell = (k, label) => `<div class="cd-cell"><span class="cd-num num" data-cd="${k}">00</span><span class="cd-label">${label}</span></div>`;
       return `<section class="panel countdown countdown--live anim" aria-label="Contagem regressiva">
+        <div class="cd-top">
+          <p class="countdown-text">Contagem regressiva para a viagem:</p>${meta}
+        </div>
         <div class="cd-grid" role="timer" aria-label="Tempo até a viagem">${cell('d', 'dias')}${cell('h', 'horas')}${cell('m', 'min')}${cell('s', 'seg')}</div>
-        <div class="cd-foot"><p class="countdown-text">para a viagem</p>${meta}</div>
       </section>`;
     }
     let inner;
@@ -164,7 +166,10 @@
     const nf = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 2 });
     const stat = (valor, label) => (valor == null ? '' : `<div class="beer-stat"><span class="beer-num num">${nf.format(valor)}</span><span class="beer-label">${label}</span></div>`);
     return `<section class="panel beer-card anim" aria-label="Total de cerveja">
-      <div class="beer-stats">${stat(b.litros, 'litros de cerveja')}${stat(b.latas, 'latas')}</div>
+      <div class="cd-top">
+        <p class="countdown-text">Info Álcool:</p>
+      </div>
+    <div class="beer-stats">${stat(b.litros, 'litros de cerveja')}${stat(b.latas, 'latas')}</div>
       <p class="beer-joke">${ic('beer')}<span>${esc(joke)}</span></p>
     </section>`;
   }
