@@ -78,6 +78,13 @@
   const footer = () => `<p class="foot">Dados da planilha, atualizados às ${updatedAt()}. Para corrigir algo, fale com quem organiza a viagem.</p>`;
 
   // -------------------------------------------------------------------- início
+  const pad2 = (n) => String(n).padStart(2, '0');
+  let tickTimer = null;
+  const stopTick = () => { clearInterval(tickTimer); tickTimer = null; };
+
+  // Instante da largada: meia-noite do primeiro dia, no horário de Brasília.
+  const startMs = () => Date.parse(`${data.viagem.inicio}T00:00:00-03:00`);
+
   function countdownHtml() {
     const { inicio, fim } = data.viagem || {};
     if (!inicio) return '';
@@ -86,11 +93,15 @@
     const today = dayNumber(data.hoje);
     const start = dayNumber(inicio);
     const end = dayNumber(fim || inicio);
-    let inner;
     if (today < start) {
-      const n = Math.round(start - today);
-      inner = `<p class="countdown-num num">${n}</p><div><p class="countdown-text">${n === 1 ? 'dia' : 'dias'} para a viagem</p>${meta}</div>`;
-    } else if (today <= end) {
+      const cell = (k, label) => `<div class="cd-cell"><span class="cd-num num" data-cd="${k}">00</span><span class="cd-label">${label}</span></div>`;
+      return `<section class="panel countdown countdown--live anim" aria-label="Contagem regressiva">
+        <div class="cd-grid" role="timer" aria-label="Tempo até a viagem">${cell('d', 'dias')}${cell('h', 'horas')}${cell('m', 'min')}${cell('s', 'seg')}</div>
+        <div class="cd-foot"><p class="countdown-text">para a viagem</p>${meta}</div>
+      </section>`;
+    }
+    let inner;
+    if (today <= end) {
       const k = Math.round(today - start) + 1;
       const total = Math.round(end - start) + 1;
       inner = `<p class="countdown-num num">${k}</p><div><p class="countdown-text">º dia de ${total} da viagem</p>${meta}</div>`;
@@ -98,6 +109,64 @@
       inner = `<div><p class="countdown-text">A viagem terminou</p>${meta}</div>`;
     }
     return `<section class="panel countdown anim" aria-label="Contagem regressiva">${inner}</section>`;
+  }
+
+  function tickCountdown() {
+    const cells = main.querySelectorAll('[data-cd]');
+    if (!cells.length) return;
+    const left = Math.max(0, Math.floor((startMs() - Date.now()) / 1000));
+    const v = { d: Math.floor(left / 86400), h: Math.floor(left / 3600) % 24, m: Math.floor(left / 60) % 60, s: left % 60 };
+    cells.forEach((el) => { el.textContent = el.dataset.cd === 'd' ? String(v.d) : pad2(v[el.dataset.cd]); });
+  }
+
+  // Piadas de cerveja: uma por carregamento da página, sem repetir a anterior.
+  const JOKES = [
+    'Cerveja não resolve todos os problemas, mas a água também não.',
+    'Moderação é importante: nunca beba mais do que a geladeira aguenta.',
+    'Quem disse que dinheiro não traz felicidade nunca comprou um engradado.',
+    'A cerveja quente é como segunda-feira: ninguém pediu.',
+    'Não é bebedeira, é hidratação com opinião.',
+    'Se a cerveja é líquida, então beber é só um pão fácil de engolir.',
+    'O segredo do churrasco é simples: um olho na carne e o outro na cerveja.',
+    'Cerveja gelada é o único relacionamento sério que dura até a última lata.',
+    'Dieta de Réveillon: carboidrato líquido, que não conta.',
+    'Quem conta as latas ainda não está no clima da festa.',
+    'Prometo beber só uma. Só que eu não prometi qual tamanho.',
+    'O melhor amigo do homem é o cachorro. O da virada é o isopor cheio.',
+    'Cerveja é como fofoca: acaba rápido quando está boa.',
+    'A diferença entre um engradado e um cofrinho é que o cofrinho a gente não esvazia no primeiro dia.',
+    'Não estou dizendo que sou o dono da roda, mas o copo tá cheio e a conversa também.',
+    'Espuma demais é sinal de pressa; espuma de menos, de quem abriu o canal errado.',
+    'Quem inventou a cerveja merecia dois Nobéis: um de química e outro de paz.',
+    'Se beber, dance. Se dançar, hidrate. Se hidratar, repita.',
+    'Cuidado com o amigo que diz "só mais uma": ele está falando pelo grupo todo.',
+    'Brindar com o copo vazio dá azar. Brindar com a lata vazia também.',
+    'O isopor é a única caixa-forte em que todo mundo sabe a senha.',
+    'Em 2027 eu prometo parar de prometer. Mas só depois da meia-noite.',
+    'A única coisa que pode ficar mais gelada que a cerveja é a notícia de que acabou.',
+    'Beba com moderação e peça ajuda para carregar o engradado.',
+    'Cerveja boa é aquela que ninguém precisou buscar no mercado de madrugada.',
+  ];
+  const pickJoke = () => {
+    let last = -1;
+    try { last = Number(localStorage.getItem('piada')); } catch (_) { /* sem storage, segue */ }
+    let i;
+    do { i = Math.floor(Math.random() * JOKES.length); } while (i === last && JOKES.length > 1);
+    try { localStorage.setItem('piada', String(i)); } catch (_) { /* ok */ }
+    return JOKES[i];
+  };
+  const joke = pickJoke();
+
+  // Card da Início: litros e latas de cerveja em destaque, mais uma piada.
+  function beerCard() {
+    const b = data.cerveja;
+    if (!b || (b.litros == null && b.latas == null)) return '';
+    const nf = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 2 });
+    const stat = (valor, label) => (valor == null ? '' : `<div class="beer-stat"><span class="beer-num num">${nf.format(valor)}</span><span class="beer-label">${label}</span></div>`);
+    return `<section class="panel beer-card anim" aria-label="Total de cerveja">
+      <div class="beer-stats">${stat(b.litros, 'litros de cerveja')}${stat(b.latas, 'latas')}</div>
+      <p class="beer-joke">${ic('beer')}<span>${esc(joke)}</span></p>
+    </section>`;
   }
 
   function renderHome() {
@@ -121,18 +190,6 @@
       ${beerCard()}`;
   }
 
-  // Card da Início: total de litros de cerveja (soma da coluna LITROS da aba CERVEJA).
-  function beerCard() {
-    const b = data.cerveja;
-    if (!b || b.litros == null) return '';
-    const litros = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 2 }).format(b.litros);
-    return `<section class="panel kpi beer-card" aria-label="Total de cerveja">
-      <p class="kpi-label">${ic('beer')}<span>Cerveja</span></p>
-      <p class="kpi-value num">${litros} L</p>
-      <p class="kpi-cap">total de litros</p>
-    </section>`;
-  }
-
   async function copyText(text) {
     try {
       await navigator.clipboard.writeText(text);
@@ -150,6 +207,9 @@
   }
 
   function bindHome() {
+    tickCountdown();
+    stopTick();
+    tickTimer = setInterval(tickCountdown, 1000);
     const btn = document.getElementById('copy-addr');
     const status = document.getElementById('copy-status');
     if (!btn) return;
@@ -392,6 +452,7 @@
       if (a.dataset.route === route) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
     });
     const y = window.scrollY;
+    stopTick();
     main.innerHTML = view.render();
     if (route === 'casa' || route === 'comida') bindPeople(route);
     if (route === 'inicio') bindHome();

@@ -185,11 +185,12 @@ test('cerveja: QTD. vira LATAS, descarta linhas sem nome e soma todas as colunas
   assert.equal(c.linhas[1][4].numero, 18.9);
   assert.deepEqual(c.totais, { 1: 7, 2: 48, 4: 42 });
   assert.equal(c.litros, 42);
+  assert.equal(c.latas, 48);
 });
 
 test('cerveja: ausente vira null e aba vazia não quebra', () => {
   assert.equal(S.buildDashboard({ pagantes: fx.pagantes, saidas: fx.saidas }, { now: NOW }).cerveja, null);
-  assert.deepEqual(S.parseCerveja([]), { colunas: [], linhas: [], totais: {}, litros: null });
+  assert.deepEqual(S.parseCerveja([]), { colunas: [], linhas: [], totais: {}, litros: null, latas: null });
 });
 
 test('datas da viagem são fixas', () => {
