@@ -50,7 +50,7 @@ const saidas = [
 ];
 
 const cerveja = [
-  ['ADULTOS', 'ENGR.', 'QTD.', 'ML.', 'LITROS'],
+  ['ADULTOS', 'ENGR.', 'QTD.', 'ML.', 'LITOS'],
   ['Thalita', '0', '0', '0,35', '0'],
   ['Amanda', '3', '18', '0,35', '18,9'],
   ['Fernando', '3', '18', '0,35', '18,9'],
