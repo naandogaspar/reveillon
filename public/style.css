@@ -109,15 +109,15 @@ h1.page { font: 650 24px/1.15 var(--display); letter-spacing: -0.01em; }
 
 /* ------------------------------------------------------------------- endereço */
 .place { display: grid; gap: 18px; }
-.place-main { display: flex; align-items: center; gap: 14px; }
-.place-name { font-size: 28px; font-weight: 700; letter-spacing: -0.01em; margin: 0; }
+.place-main { display: flex; align-items: center; gap: 14px; justify-content: space-between; flex-direction: row-reverse;}
+.place-name { font-size: 24px; font-weight: 700; letter-spacing: -0.01em; margin: 0; }
 .place-addr { color: var(--ink-2); margin-top: 4px; overflow-wrap: anywhere; }
 .place-actions { display: flex; gap: 10px; flex-wrap: wrap; }
 .place-actions .btn { flex: 1 1 160px; }
 @media (min-width: 900px) {
   .place { grid-template-columns: 1fr auto; align-items: center; }
-  .place-main {justify-content: space-between; flex-direction: row-reverse;}
-  .place-name { font-size: 24px; }
+  .place-main {justify-content: start; flex-direction: row;}
+  .place-name { font-size: 28px; }
   .place-actions .btn { flex: none; }
 }
 
