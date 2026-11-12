@@ -148,10 +148,18 @@ main > section + section, main > dl + section { margin-top: 36px; padding-top: 2
 .due { color: var(--ink); font-weight: 600; }
 .chip { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--ink-2); white-space: nowrap; }
 .chip svg { width: 14px; height: 14px; flex: none; }
-.chip--quitado, .chip--realizado { color: var(--ink); font-weight: 600; }
+.chip--quitado { color: var(--ink); font-weight: 600; }
 .empty { color: var(--ink-2); padding: 24px 0; }
 
 /* -------------------------------------------------------------------- gastos */
+.caixa { padding: 20px 0; display: grid; gap: 4px; }
+.caixa + .caixa { border-top: 1px solid var(--rule); }
+.caixa .big { margin: 6px 0 10px; }
+.caixa .bar { margin-bottom: 8px; }
+.tag { color: var(--ink-2); }
+.tag::before { content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 2px; background: var(--series, var(--muted)); margin-right: 6px; }
+.tag--casa { --series: var(--casa); }
+.tag--comida { --series: var(--comida); }
 .ledger .row { grid-template-columns: 1fr auto; align-items: baseline; }
 .ledger .row-bottom { grid-column: 1 / -1; justify-content: flex-start; gap: 12px; }
 .amount { font-weight: 600; }

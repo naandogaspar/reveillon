@@ -22,12 +22,13 @@ Abas: Início, Pagamento casa, Pagamento comida e Gastos.
 | `TRIP_YEAR` | Ano de início da viagem; datas sem ano (30/12, 01/01) usam isto. | `2026` |
 | `TRIP_TITLE` | Título no topo. | `Réveillon 2027` |
 | `TRIP_LOCATION` | Local mostrado ao lado das datas (ex.: `Maricá, RJ`). | vazio |
-| `GID_PAGANTES`, `GID_SAIDAS`, `GID_MENU` | Número `gid=` de cada aba (aparece na URL ao abrir a aba). Só mude se usar outra planilha. | abas da planilha padrão |
+| `GID_PAGANTES`, `GID_SAIDAS` | Número `gid=` de cada aba (aparece na URL ao abrir a aba). Só mude se usar outra planilha. | abas da planilha padrão |
 
 Depois de mudar uma variável, faça um novo deploy.
 
 ## Regras da planilha
 
+- As **datas da viagem** (contagem regressiva do Início) são fixas no código: `TRIP_START` e `TRIP_END` em `lib/sheet.js`.
 - A planilha precisa estar compartilhada como **"Qualquer pessoa com o link" (leitor)**.
   Se você restringir o acesso, o dashboard para de funcionar.
 - **PAGANTES**: títulos de grupo em linhas próprias (`ADULTOS`, `CRIANÇAS 1`...) e colunas
@@ -35,9 +36,10 @@ Depois de mudar uma variável, faça um novo deploy.
   Dá para inserir linhas e colunas. Os saldos "pendente" são recalculados (valor − pago);
   se a planilha divergir do cálculo, o aviso aparece em `/api/dados` no campo `avisos`.
   Linhas `Total`, `Endereço:` e linhas sem nome são ignoradas. `--` significa "não se aplica".
-- **SAIDAS**: `DATA`, `SAIDA`, `VALOR`; colunas opcionais `TIPO` (ex.: CASA, COMIDA) e `OBS`. Datas futuras aparecem como *previstas*.
-  Para controlar na mão, adicione uma coluna `STATUS` com `previsto` ou `pago`.
-- **MENU**: `DATA`, `ALMOÇO`, `JANTA`. O cardápio não tem aba no site, mas a primeira e a última data desta aba definem a contagem regressiva do Início. Mantenha as datas da viagem aqui.
+- **SAIDAS**: `DATA` (dd/mm), `TIPO`, `SAIDA` (rótulo), `VALOR` e `OBS` (descrição completa).
+  `TIPO` deve ser `CASA` ou `COMIDA`: é dele que sai o desconto. Na aba Gastos, cada grupo mostra
+  *saldo = arrecadado − gastos do tipo*. O saldo pode ficar negativo (os gastos passaram do arrecadado).
+  Lançamentos com outro tipo aparecem na lista, mas não entram em nenhum saldo (e geram aviso em `/api/dados`).
 - Nomes e textos aparecem exatamente como estão na planilha.
 
 ## Rodar no computador

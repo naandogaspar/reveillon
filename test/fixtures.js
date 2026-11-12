@@ -50,15 +50,4 @@ const saidas = [
   ['10/11', 'COMIDA', 'MERCADO DESCARTAVEIS', 'R$ 257,38', 'COMPRA DE MATERIAL DE APOIO, COPOS, PRATOS, TALHES, ETC.'],
 ];
 
-const menu = [
-  ['MENU REVEILLON 2026'],
-  ['DATA', 'ALMOÇO', 'JANTA'],
-  ['30/12', 'Macarrão com salsicha', 'Churrasco'],
-  ['31/12', 'Strogonoffe de frango', 'Peru + Salada de bacalhau + salpicão + Tender + Churrasco'],
-  ['01/01', 'Lasanha + salada verde', 'Caldos e Petiscos'],
-  ['02/01', 'Filé de peixe  + Tabule', 'Churrasco'],
-  ['03/01', 'Fricassê / Risoto', 'Churrasco'],
-  ['04/01', 'Churrasco', '----'],
-];
-
-module.exports = { pagantes, saidas, menu };
+module.exports = { pagantes, saidas };
