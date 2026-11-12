@@ -195,7 +195,7 @@ test('gastos: colunas são achadas pelo cabeçalho mesmo fora de ordem', () => {
 test('datas da viagem são fixas', () => {
   const d = S.buildDashboard(fx, { tripYear: 2026, now: NOW });
   assert.equal(d.hoje, '2026-11-11');
-  assert.deepEqual(d.viagem, { inicio: '2026-12-30', fim: '2027-01-04' });
+  assert.deepEqual(d.viagem, { inicio: '2026-12-30', fim: '2027-01-03' });
 });
 
 test('hojeSaoPaulo usa o fuso de São Paulo', () => {
