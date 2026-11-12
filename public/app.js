@@ -341,7 +341,7 @@
 
   window.addEventListener('hashchange', () => render(true));
   document.addEventListener('visibilitychange', () => { if (!document.hidden) load(true); });
-  setInterval(() => { if (!document.hidden && data) load(true); }, 2 * 60 * 1000);
+  setInterval(() => { if (!document.hidden && data) load(true); }, 60 * 1000);
 
   load();
 })();

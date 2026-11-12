@@ -60,3 +60,9 @@ PASSWORD=abc npm run dev   # testa a senha
 ## Créditos
 
 Ícones: [Font Awesome Free](https://fontawesome.com), licença [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Estão embutidos em `public/icons.js`.
+
+## Tempo de atualização
+
+Depois que você edita a planilha, a mudança aparece em cerca de 15 a 45 segundos:
+o servidor guarda a leitura por 15 s (`MEMO_MS` em `api/dados.js`), o cache do Vercel vale 15 s
+(mais 30 s de tolerância) e a página aberta se atualiza a cada 60 s e ao voltar para a aba.
