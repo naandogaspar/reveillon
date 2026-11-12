@@ -137,28 +137,34 @@ test('gastos: lê DATA, TIPO, SAIDA, VALOR e OBS', () => {
   assert.deepEqual(g.avisos, []);
 });
 
-test('saldos: cada gasto desconta do arrecadado do seu tipo', () => {
+test('gastos: só a comida entra na aba e no saldo', () => {
   const d = S.buildDashboard(fx, { tripYear: 2026, now: NOW });
   const g = d.gastos;
-  assert.equal(g.casa.recebido, 4273.66);
-  assert.equal(g.casa.gasto, 2880);
-  assert.equal(g.casa.saldo, 1393.66);
-  assert.equal(g.casa.negativo, false);
-  assert.equal(Math.round(g.casa.percentualUsado), 67);
-
+  assert.deepEqual(g.itens.map((i) => i.descricao), ['COMPRAS BASE 1', 'MERCADO DESCARTAVEIS']);
+  assert.equal(g.total, 577.88);
   assert.equal(g.comida.recebido, 400);
   assert.equal(g.comida.gasto, 577.88);
   assert.equal(g.comida.saldo, -177.88);
   assert.equal(g.comida.negativo, true);
   assert.equal(g.comida.percentualUsado, 100); // barra limitada a 100%
-
-  assert.equal(g.saldo, 1215.78);
-  assert.equal(g.total, 3457.88);
-  assert.equal(g.outros.qtd, 0);
+  assert.equal(g.casa, undefined);
+  assert.equal(g.saldo, undefined);
+  assert.deepEqual(g.outros, { total: 0, qtd: 0 });
   assert.deepEqual(d.avisos, []);
 });
 
-test('gastos: tipo em minúsculas/com espaço vale; tipo desconhecido gera aviso e não desconta', () => {
+test('gastos: saldo positivo e percentual usado', () => {
+  const rows = [
+    ['DATA', 'TIPO', 'SAIDA', 'VALOR', 'OBS'],
+    ['02/11', 'COMIDA', 'Gelo', 'R$ 100,00', ''],
+  ];
+  const d = S.buildDashboard({ pagantes: fx.pagantes, saidas: rows }, { tripYear: 2026, now: NOW });
+  assert.equal(d.gastos.comida.saldo, 300);
+  assert.equal(d.gastos.comida.negativo, false);
+  assert.equal(d.gastos.comida.percentualUsado, 25);
+});
+
+test('gastos: tipo em minúsculas vale; CASA fica fora; tipo desconhecido gera aviso', () => {
   const rows = [
     ['DATA', 'TIPO', 'SAIDA', 'VALOR', 'OBS'],
     ['01/11', ' casa ', 'Sinal', 'R$ 100,00', ''],
@@ -166,11 +172,10 @@ test('gastos: tipo em minúsculas/com espaço vale; tipo desconhecido gera aviso
     ['03/11', 'BEBIDA', 'Cerveja', 'R$ 70,00', ''],
   ];
   const d = S.buildDashboard({ pagantes: fx.pagantes, saidas: rows }, { tripYear: 2026, now: NOW });
-  assert.equal(d.gastos.casa.gasto, 100);
-  assert.equal(d.gastos.comida.gasto, 50);
+  assert.deepEqual(d.gastos.itens.map((i) => i.descricao), ['Gelo']);
+  assert.equal(d.gastos.total, 50);
+  assert.equal(d.gastos.comida.saldo, 350);
   assert.deepEqual(d.gastos.outros, { total: 70, qtd: 1 });
-  assert.equal(d.gastos.total, 220);
-  assert.equal(d.gastos.saldo, round(4273.66 - 100 + 400 - 50));
   assert.equal(d.avisos.length, 1);
   assert.match(d.avisos[0], /BEBIDA/);
 });

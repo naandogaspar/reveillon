@@ -38,9 +38,9 @@ Depois de mudar uma variável, faça um novo deploy.
   se a planilha divergir do cálculo, o aviso aparece em `/api/dados` no campo `avisos`.
   Linhas `Total`, `Endereço:` e linhas sem nome são ignoradas. `--` significa "não se aplica".
 - **SAIDAS**: `DATA` (dd/mm), `TIPO`, `SAIDA` (rótulo), `VALOR` e `OBS` (descrição completa).
-  `TIPO` deve ser `CASA` ou `COMIDA`: é dele que sai o desconto. Na aba Gastos, cada grupo mostra
-  *saldo = arrecadado − gastos do tipo*. O saldo pode ficar negativo (os gastos passaram do arrecadado).
-  Lançamentos com outro tipo aparecem na lista, mas não entram em nenhum saldo (e geram aviso em `/api/dados`).
+  A aba **Gastos** do site controla só a **comida**: mostra as saídas com `TIPO` = `COMIDA` e o saldo
+  (*arrecadado da comida − gastos de comida*), que pode ficar negativo. Lançamentos com `TIPO` = `CASA`
+  ficam só na planilha e não entram no site. Qualquer outro tipo é ignorado e gera aviso em `/api/dados`.
 - Nomes e textos aparecem exatamente como estão na planilha.
 
 ## Rodar no computador

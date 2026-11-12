@@ -36,7 +36,7 @@
   };
 
   let data = null;
-  const filter = { q: '', status: 'todos', gasto: 'todos' };
+  const filter = { q: '', status: 'todos' };
 
   // ------------------------------------------------------------------ peças
   const STATUS_ICON = { quitado: 'check', parcial: 'half', pendente: 'empty', negativo: 'alert' };
@@ -220,66 +220,46 @@
   }
 
   // -------------------------------------------------------------------- gastos
-  function caixaHtml(nome, kind, icon, c) {
+  // A aba controla só a comida: saldo (arrecadado - gastos) e as saídas dessa conta.
+  function renderExpenses() {
+    const g = data.gastos;
+    const c = g.comida;
+    const comida = data.pagamentos.comida;
+    const n = g.itens.length;
     const resumo = c.negativo
       ? `Os gastos passaram do arrecadado em ${money(-c.saldo)}.`
       : `${pct(c.percentualUsado)} do arrecadado já foi usado.`;
-    return `<section class="panel caixa anim" style="--series:var(--${kind})" aria-label="Saldo ${nome}">
-      ${panelHead(icon, nome, c.negativo ? chip('negativo') : '')}
-      <p class="big num">${money(c.saldo)}<small>${c.negativo ? 'saldo negativo' : 'de saldo'}</small></p>
-      ${bar(c.gasto, c.recebido, kind, 'gastos')}
-      <div class="gauge-bottom num"><span>Arrecadado ${money(c.recebido)}</span><span class="strong">Gastos ${money(c.gasto)}</span></div>
-      <p class="sub">${resumo}</p>
-    </section>`;
-  }
+    const lista = n
+      ? `<ul class="ledger">${g.itens.map((i) => `<li class="row">
+          <span class="name">${esc(i.descricao || 'Sem nome')}</span><span class="amount num">${money(i.valor)}</span>
+          <div class="row-bottom"><span class="num">${esc(i.data || 'Sem data')}</span></div>
+          ${i.obs ? `<p class="sub obs">${esc(i.obs)}</p>` : ''}
+        </li>`).join('')}</ul>`
+      : '<p class="empty">Nenhuma saída de comida lançada ainda. Elas aparecem aqui quando forem adicionadas na aba SAIDAS da planilha, com TIPO COMIDA.</p>';
 
-  function expensesListHtml() {
-    const itens = data.gastos.itens.filter((i) => filter.gasto === 'todos' || i.tipoChave === filter.gasto);
-    if (!itens.length) {
-      return `<p class="empty">${data.gastos.itens.length ? 'Nenhum gasto desse tipo.' : 'Nenhum gasto lançado ainda. Os gastos aparecem aqui quando forem adicionados na aba SAIDAS da planilha.'}</p>`;
-    }
-    return `<ul class="ledger">${itens.map((i) => `<li class="row">
-        <span class="name">${esc(i.descricao || 'Sem nome')}</span><span class="amount num">${money(i.valor)}</span>
-        <div class="row-bottom"><span class="num">${esc(i.data || 'Sem data')}</span>${i.tipo ? `<span class="tag tag--${i.tipoChave}">${esc(sentence(i.tipo))}</span>` : ''}</div>
-        ${i.obs ? `<p class="sub obs">${esc(i.obs)}</p>` : ''}
-      </li>`).join('')}</ul>`;
-  }
-
-  function renderExpenses() {
-    const g = data.gastos;
-    const recebido = g.casa.recebido + g.comida.recebido;
-    const gasto = g.casa.gasto + g.comida.gasto;
-    const seg = (id, label) => `<button type="button" data-f="${id}" aria-pressed="${filter.gasto === id}">${label}</button>`;
     return `
-      <div><h1 class="page">Gastos</h1>
-      <p class="lede">Cada gasto é descontado do que foi arrecadado do mesmo tipo: casa ou comida.</p></div>
+      <div><h1 class="page">Gastos da comida</h1>
+      <p class="lede">Controle do dinheiro da comida: o que foi arrecadado, o que já saiu e o que sobra.</p></div>
       <div class="kpis anim">
-        ${kpi('wallet', 'Arrecadado', money(recebido), 'casa e comida somadas')}
-        ${kpi('receipt', 'Total de gastos', money(g.total), `${g.itens.length} ${g.itens.length === 1 ? 'lançamento' : 'lançamentos'}`)}
-        ${kpi('piggy', 'Saldo em caixa', money(g.saldo), `arrecadado menos ${money(gasto)} em gastos`)}
-        ${kpi('info', 'Sem tipo definido', money(g.outros.total), g.outros.qtd ? `${g.outros.qtd} ${g.outros.qtd === 1 ? 'lançamento' : 'lançamentos'} fora dos saldos` : 'tudo classificado')}
+        ${kpi('wallet', 'Arrecadado', money(c.recebido), `de ${money(comida.valor)} previstos`)}
+        ${kpi('receipt', 'Gastos', money(c.gasto), `${n} ${n === 1 ? 'saída' : 'saídas'}`)}
+        ${kpi('piggy', 'Saldo disponível', money(c.saldo), c.negativo ? 'gastos acima do arrecadado' : 'arrecadado menos gastos')}
+        ${kpi('hourglass', 'Falta receber', money(comida.pendente), 'da comida, ainda em aberto')}
       </div>
-      <div class="split split--even">
-        ${caixaHtml('Casa', 'casa', 'house', g.casa)}
-        ${caixaHtml('Comida', 'comida', 'utensils', g.comida)}
-      </div>
+      <section class="panel caixa anim" style="--series:var(--comida)" aria-label="Saldo da comida">
+        ${panelHead('utensils', 'Saldo da comida', c.negativo ? chip('negativo') : '')}
+        <p class="big num">${money(c.saldo)}<small>${c.negativo ? 'saldo negativo' : 'de saldo'}</small></p>
+        ${bar(c.gasto, c.recebido, 'comida', 'gastos')}
+        <div class="gauge-bottom num"><span>Arrecadado ${money(c.recebido)}</span><span class="strong">Gastos ${money(c.gasto)}</span></div>
+        <p class="sub">${resumo}</p>
+      </section>
+      ${g.outros.qtd ? `<p class="note">${ic('info')}<span>${g.outros.qtd} ${g.outros.qtd === 1 ? 'lançamento tem' : 'lançamentos têm'} TIPO diferente de CASA e COMIDA (${money(g.outros.total)}) e não aparecem aqui. Confira a aba SAIDAS.</span></p>` : ''}
       <section class="panel" aria-labelledby="h-lancamentos">
-        ${panelHead('receipt', '<span id="h-lancamentos">Lançamentos</span>')}
-        <p class="panel-sub num">${money(g.total)} em ${g.itens.length} ${g.itens.length === 1 ? 'gasto' : 'gastos'}</p>
-        <div class="toolbar" style="margin-bottom:6px"><div class="seg" role="group" aria-label="Filtrar por tipo">${seg('todos', 'Todos')}${seg('casa', 'Casa')}${seg('comida', 'Comida')}</div></div>
-        <div id="lista-gastos" aria-live="polite">${expensesListHtml()}</div>
+        ${panelHead('receipt', '<span id="h-lancamentos">Saídas da comida</span>')}
+        <p class="panel-sub num">${money(g.total)} em ${n} ${n === 1 ? 'saída' : 'saídas'}</p>
+        ${lista}
       </section>
       ${footer()}`;
-  }
-
-  function bindExpenses() {
-    const lista = document.getElementById('lista-gastos');
-    if (!lista) return;
-    main.querySelectorAll('.seg button').forEach((b) => b.addEventListener('click', () => {
-      filter.gasto = b.dataset.f;
-      main.querySelectorAll('.seg button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
-      lista.innerHTML = expensesListHtml();
-    }));
   }
 
   // -------------------------------------------------------- estados e carga
@@ -347,7 +327,6 @@
     const y = window.scrollY;
     main.innerHTML = view.render();
     if (route === 'casa' || route === 'comida') bindPeople(route);
-    if (route === 'gastos') bindExpenses();
     if (route === 'inicio') bindHome();
     if (resetScroll) { window.scrollTo(0, 0); main.focus({ preventScroll: true }); } else { window.scrollTo(0, y); }
   }
