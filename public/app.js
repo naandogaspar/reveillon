@@ -375,7 +375,8 @@
       ? '<p class="empty">A aba CERVEJA não pôde ser lida agora. Tente de novo em instantes.</p>'
       : (b.linhas.length ? `<div id="beer">${beerTable(b)}</div>` : '<p class="empty">Nenhuma linha na aba CERVEJA ainda.</p>');
     return `
-      <h1 class="page">Cerveja</h1>
+      <h1 class="page">Gestão da Cana</h1>
+      <p>Já colocou a sua?<br><small>PS: tem refri para as crianças? kkk</small></p>
       <section class="panel panel--tabela anim" aria-label="Tabela de cerveja">${corpo}</section>
       ${footer()}`;
   }
