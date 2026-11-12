@@ -28,6 +28,7 @@ Depois de mudar uma variável, faça um novo deploy.
 
 ## Regras da planilha
 
+- O **endereço** do Início (com os botões Copiar e Abrir no mapa) é fixo no código: `ADDRESS` em `public/app.js`.
 - As **datas da viagem** (contagem regressiva do Início) são fixas no código: `TRIP_START` e `TRIP_END` em `lib/sheet.js`.
 - A planilha precisa estar compartilhada como **"Qualquer pessoa com o link" (leitor)**.
   Se você restringir o acesso, o dashboard para de funcionar.

@@ -20,6 +20,14 @@
   };
   document.querySelectorAll('[data-icon]').forEach((el) => { el.innerHTML = ic(el.dataset.icon); });
 
+  // Endereço da chácara (fixo no código; para mudar, edite aqui).
+  const ADDRESS = {
+    nome: 'Chácara Nosso Refúgio',
+    linha: 'Rua Das Amendoas, Qd12 - LT 275 - Rincão Mimoso, Maricá - RJ, 24938-340',
+  };
+  const ADDRESS_FULL = `${ADDRESS.nome}: ${ADDRESS.linha}`;
+  const MAP_URL = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${ADDRESS.nome}, ${ADDRESS.linha}`)}`;
+
   const ROUTES = {
     inicio: { title: 'Início', render: renderHome },
     casa: { title: 'Casa', render: () => renderPeople('casa') },
@@ -72,7 +80,7 @@
     const { inicio, fim } = data.viagem || {};
     if (!inicio) return '';
     const range = fim && fim !== inicio ? `${ddmm(inicio)} a ${ddmm(fim)}` : ddmm(inicio);
-    const meta = `<div class="countdown-meta"><span>${ic('calendar')}${range}</span>${data.local ? `<span>${ic('pin')}${esc(data.local)}</span>` : ''}</div>`;
+    const meta = `<div class="countdown-meta"><span>${ic('calendar')}${range}</span></div>`;
     const today = dayNumber(data.hoje);
     const start = dayNumber(inicio);
     const end = dayNumber(fim || inicio);
@@ -91,49 +99,53 @@
   }
 
   function renderHome() {
-    const p = data.pagamentos;
-    const g = data.gastos;
-    const gastoTotal = g.casa.gasto + g.comida.gasto;
-
-    const caixaGauge = (nome, kind, c) => gauge({
-      nome, kind, usado: c.gasto, total: c.recebido, texto: 'gastos', rotulo: 'utilizado',
-      esquerda: `Gastos ${money(c.gasto)} de ${money(c.recebido)}`,
-      direita: c.negativo ? `Negativo em ${money(-c.saldo)}` : `Restam ${money(c.saldo)}`,
-    });
-
     return `
-      <h1 class="sr-only">Visão geral</h1>
-      ${countdownHtml()}
-      <div class="kpis anim">
-        ${kpi('wallet', 'Arrecadado', money(p.total.pago), `de ${money(p.total.valor)} previstos`)}
-        ${kpi('hourglass', 'Falta receber', money(p.total.pendente), `${pct(p.total.percentual)} do previsto já foi pago`)}
-        ${kpi('piggy', 'Saldo em caixa', money(g.saldo), gastoTotal > 0 ? `depois de ${money(gastoTotal)} em gastos` : 'nenhum gasto lançado')}
-        ${kpi('users', 'Pessoas quitadas', `${p.total.quitadas} de ${p.total.pessoas}`, 'com tudo pago')}
-      </div>
-      <div class="split">
-        <section class="panel anim" aria-labelledby="h-pagamentos">
-          ${panelHead('wallet', '<span id="h-pagamentos">Acompanhamento dos pagamentos</span>')}
-          <p class="panel-sub">As barras mostram quanto de cada valor já foi pago.</p>
-          <div class="gauges">
-            ${gauge({ nome: 'Casa', kind: 'casa', usado: p.casa.pago, total: p.casa.valor, texto: 'pagos', rotulo: 'pago',
-              esquerda: `Pago ${money(p.casa.pago)} de ${money(p.casa.valor)}`, direita: `Faltam ${money(p.casa.pendente)}` })}
-            ${gauge({ nome: 'Comida', kind: 'comida', usado: p.comida.pago, total: p.comida.valor, texto: 'pagos', rotulo: 'pago',
-              esquerda: `Pago ${money(p.comida.pago)} de ${money(p.comida.valor)}`, direita: `Faltam ${money(p.comida.pendente)}` })}
+      <h1 class="sr-only">Início</h1>
+      <section class="panel place" aria-labelledby="h-local">
+        <div class="place-main">
+          <span class="tile" aria-hidden="true">${ic('pin')}</span>
+          <div>
+            <h2 class="place-name" id="h-local">${esc(ADDRESS.nome)}</h2>
+            <p class="place-addr">${esc(ADDRESS.linha)}</p>
           </div>
-          <a class="link" href="#casa">Ver quem já pagou</a>
-        </section>
-        <section class="panel anim" aria-labelledby="h-saldos">
-          ${panelHead('piggy', '<span id="h-saldos">Uso do dinheiro arrecadado</span>')}
-          <p class="panel-sub">Cada gasto sai do saldo do seu tipo: casa ou comida.</p>
-          <div class="gauges">
-            ${caixaGauge('Casa', 'casa', g.casa)}
-            ${caixaGauge('Comida', 'comida', g.comida)}
-          </div>
-          <p class="note">${ic('info')}<span>Os valores vêm da planilha e se atualizam sozinhos. O saldo é o arrecadado menos os gastos do mesmo tipo.</span></p>
-          <a class="link" href="#gastos">Ver os gastos</a>
-        </section>
-      </div>
-      ${footer()}`;
+        </div>
+        <div class="place-actions">
+          <button type="button" class="btn btn--ghost" id="copy-addr">${ic('copy')}<span>Copiar endereço</span></button>
+          <a class="btn" href="${MAP_URL}" target="_blank" rel="noopener noreferrer">${ic('map')}<span>Abrir no mapa</span></a>
+        </div>
+        <p class="sr-only" role="status" id="copy-status"></p>
+      </section>
+      ${countdownHtml()}`;
+  }
+
+  async function copyText(text) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch (_) {
+      // Alternativa para navegadores sem acesso à área de transferência.
+      const t = document.createElement('textarea');
+      t.value = text; t.setAttribute('readonly', ''); t.style.position = 'fixed'; t.style.opacity = '0';
+      document.body.appendChild(t); t.select();
+      let ok = false;
+      try { ok = document.execCommand('copy'); } catch (_e) { ok = false; }
+      t.remove();
+      return ok;
+    }
+  }
+
+  function bindHome() {
+    const btn = document.getElementById('copy-addr');
+    const status = document.getElementById('copy-status');
+    if (!btn) return;
+    let timer;
+    btn.addEventListener('click', async () => {
+      const ok = await copyText(ADDRESS_FULL);
+      btn.innerHTML = `${ic(ok ? 'tick' : 'alert')}<span>${ok ? 'Endereço copiado' : 'Não foi possível copiar'}</span>`;
+      status.textContent = ok ? 'Endereço copiado' : 'Não foi possível copiar o endereço';
+      clearTimeout(timer);
+      timer = setTimeout(() => { btn.innerHTML = `${ic('copy')}<span>Copiar endereço</span>`; status.textContent = ''; }, 2200);
+    });
   }
 
   // ------------------------------------------------------- casa e comida
@@ -336,6 +348,7 @@
     main.innerHTML = view.render();
     if (route === 'casa' || route === 'comida') bindPeople(route);
     if (route === 'gastos') bindExpenses();
+    if (route === 'inicio') bindHome();
     if (resetScroll) { window.scrollTo(0, 0); main.focus({ preventScroll: true }); } else { window.scrollTo(0, y); }
   }
 

@@ -55,7 +55,6 @@ main:focus { outline: none; }
   color: var(--gold); font-size: 24px;
 }
 .brand { font: 650 clamp(28px, 6.5vw, 44px)/1.05 var(--display); letter-spacing: -0.02em; }
-.tagline { color: var(--ink-2); font-size: 15px; margin-top: 6px; max-width: 60ch; }
 
 .tabs { display: flex; flex-wrap: wrap; gap: 10px; padding-bottom: 20px; }
 .tabs a {
@@ -107,6 +106,18 @@ h1.page { font: 650 24px/1.15 var(--display); letter-spacing: -0.01em; }
 .panel-head .grow { flex: 1; min-width: 0; }
 .sub { color: var(--muted); font-size: 14px; }
 .panel-sub { color: var(--muted); font-size: 14px; margin: 10px 0 18px; }
+
+/* ------------------------------------------------------------------- endereço */
+.place { display: grid; gap: 18px; }
+.place-main { display: flex; align-items: center; gap: 14px; }
+.place-name { font: 600 20px/1.2 var(--display); letter-spacing: -0.01em; }
+.place-addr { color: var(--ink-2); margin-top: 4px; overflow-wrap: anywhere; }
+.place-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.place-actions .btn { flex: 1 1 160px; }
+@media (min-width: 900px) {
+  .place { grid-template-columns: 1fr auto; align-items: center; }
+  .place-actions .btn { flex: none; }
+}
 
 /* -------------------------------------------------------------- contagem regressiva */
 .countdown { display: flex; align-items: center; gap: 22px; }
@@ -207,7 +218,9 @@ h1.page { font: 650 24px/1.15 var(--display); letter-spacing: -0.01em; }
 .login { max-width: 380px; margin: 24px auto; }
 .login form { display: grid; gap: 12px; margin-top: 16px; }
 .login input { font: inherit; color: var(--ink); background: rgba(255, 255, 255, 0.04); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; }
-.btn { font: inherit; font-weight: 600; color: var(--on-gold); background: linear-gradient(135deg, var(--gold), var(--gold-2)); border: 0; border-radius: 999px; padding: 12px 20px; cursor: pointer; }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 9px; text-decoration: none; font: inherit; font-weight: 600; font-size: 14px; color: var(--on-gold); background: linear-gradient(135deg, var(--gold), var(--gold-2)); border: 0; border-radius: 999px; padding: 12px 20px; cursor: pointer; }
+.btn--ghost { color: var(--ink); background: rgba(255, 255, 255, 0.04); border: 1px solid var(--line); }
+.btn--ghost:hover { background: rgba(255, 255, 255, 0.09); }
 .err { color: var(--ink); font-size: 14px; }
 .err::before { content: "Atenção: "; font-weight: 600; color: var(--gold); }
 
