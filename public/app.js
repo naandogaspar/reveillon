@@ -425,14 +425,14 @@
   }
 
   function postHtml(p) {
-    const nome = p.autor || 'Convidado';
+    const alt = esc(p.legenda || (p.autor ? `Foto de ${p.autor}` : 'Foto do feed'));
     const legenda = p.legenda ? `<p class="post-cap">${esc(p.legenda)}</p>` : '';
     return `<article class="panel post">
-      <button type="button" class="post-open" data-src="${esc(p.imagem)}" data-alt="${esc(p.legenda || `Foto de ${nome}`)}" aria-label="Ver a foto em tela cheia">
-        <img class="post-img" src="${esc(p.imagem)}" width="${p.largura}" height="${p.altura}" loading="lazy" decoding="async" alt="${esc(p.legenda || `Foto de ${nome}`)}">
+      <button type="button" class="post-open" data-src="${esc(p.imagem)}" data-alt="${alt}" aria-label="Ver a foto em tela cheia">
+        <img class="post-img" src="${esc(p.imagem)}" width="${p.largura}" height="${p.altura}" loading="lazy" decoding="async" alt="${alt}">
       </button>
       ${legenda}
-      <p class="post-meta"><span>${esc(nome)}</span><span>${esc(quando(p.criadoEm))}</span></p>
+      <p class="post-meta">${p.autor ? `<span>${esc(p.autor)}</span>` : ''}<span>${esc(quando(p.criadoEm))}</span></p>
     </article>`;
   }
 
@@ -452,9 +452,16 @@
         <button type="button" class="fab" id="feed-add" aria-label="Publicar uma foto">${ic('plus')}</button>
       </div>
       <input type="file" id="feed-file" accept="image/*" hidden>
+      <input type="file" id="feed-cam" accept="image/*" capture="environment" hidden>
       <p class="feed-status" id="feed-status" role="status"></p>
       <div id="feed-list" class="feed" aria-live="polite">${feedListHtml()}</div>
     </div>
+    <dialog class="sheet sheet--small" id="feed-choose" aria-labelledby="choose-title">
+      <div class="sheet-head"><h2 id="choose-title">Adicionar foto</h2>
+        <button type="button" class="icon-btn" id="choose-close" aria-label="Fechar">${ic('xmark')}</button></div>
+      <button type="button" class="btn btn--ghost choice" id="choose-cam">${ic('camera')}<span>Abrir a câmera</span></button>
+      <button type="button" class="btn btn--ghost choice" id="choose-gal">${ic('images')}<span>Escolher da galeria</span></button>
+    </dialog>
     <dialog class="sheet" id="feed-sheet" aria-labelledby="feed-sheet-title">
       <div class="sheet-head"><h2 id="feed-sheet-title">Nova publicação</h2>
         <button type="button" class="icon-btn" id="feed-close" aria-label="Fechar">${ic('xmark')}</button></div>
@@ -533,7 +540,7 @@
 
   function bindFeed() {
     const $ = (id) => document.getElementById(id);
-    const sheet = $('feed-sheet'), file = $('feed-file'), msg = $('feed-msg'), status = $('feed-status');
+    const sheet = $('feed-sheet'), file = $('feed-file'), cam = $('feed-cam'), choose = $('feed-choose'), msg = $('feed-msg'), status = $('feed-status');
     const legenda = $('feed-legenda'), autor = $('feed-autor'), send = $('feed-send'), add = $('feed-add');
     const aviso = (t, erro) => { msg.textContent = t; msg.classList.toggle('err', Boolean(erro)); };
     const avisoPagina = (t, erro) => {
@@ -544,12 +551,16 @@
     const fechar = () => {
       if (sheet.open) sheet.close();
       if (feedState.foto) URL.revokeObjectURL(feedState.foto.url);
-      feedState.foto = null; feedState.legenda = ''; file.value = '';
+      feedState.foto = null; feedState.legenda = ''; file.value = ''; cam.value = '';
     };
 
-    add.addEventListener('click', () => file.click());
-    file.addEventListener('change', async () => {
-      const f = file.files && file.files[0];
+    add.addEventListener('click', () => choose.showModal());
+    $('choose-close').addEventListener('click', () => choose.close());
+    choose.addEventListener('click', (e) => { if (e.target === choose) choose.close(); });
+    $('choose-cam').addEventListener('click', () => { choose.close(); cam.click(); });
+    $('choose-gal').addEventListener('click', () => { choose.close(); file.click(); });
+    const aoEscolher = async (input) => {
+      const f = input.files && input.files[0];
       if (!f) return;
       add.disabled = true;
       avisoPagina('Preparando a foto…');
@@ -567,7 +578,10 @@
         legenda.focus();
       } catch (e) { avisoPagina(e.message, true); }
       add.disabled = false;
-    });
+      input.value = '';
+    };
+    file.addEventListener('change', () => aoEscolher(file));
+    cam.addEventListener('change', () => aoEscolher(cam));
 
     legenda.addEventListener('input', () => { feedState.legenda = legenda.value; });
     autor.addEventListener('input', () => { feedState.autor = autor.value; });
@@ -667,7 +681,17 @@
     }
   }
 
-  const currentRoute = () => { const r = location.hash.replace('#', ''); return ROUTES[r] ? r : 'inicio'; };
+  // O Feed fica escondido até 24/12; antes disso só abre quem entra com ?feed na URL.
+  const FEED_LIBERA = '12-24';
+  const feedLiberado = () => {
+    if (new URLSearchParams(location.search).has('feed')) return true;
+    return Boolean(data && data.viagem && data.hoje >= `${data.viagem.inicio.slice(0, 4)}-${FEED_LIBERA}`);
+  };
+  const currentRoute = () => {
+    const r = location.hash.replace('#', '');
+    if (r === 'feed' && !feedLiberado()) return 'inicio';
+    return ROUTES[r] ? r : 'inicio';
+  };
 
   function render(resetScroll) {
     if (!data) return;
@@ -679,6 +703,7 @@
     document.getElementById('brand').textContent = data.titulo;
     document.title = `${view.title} · ${data.titulo}`;
     document.querySelectorAll('.tabs a').forEach((a) => {
+      if (a.dataset.route === 'feed') a.hidden = !feedLiberado();
       if (a.dataset.route === route) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
     });
     const y = window.scrollY;

@@ -86,6 +86,10 @@ Pontos de atenção:
 - Não há exclusão pelo site. Para apagar um post, remova a linha em `feed_posts` (e, se quiser, o arquivo no bucket).
 - A lista mostra 20 fotos por vez (botão "Ver fotos mais antigas") e se atualiza a cada 30 s com a aba aberta.
 
+**Aba escondida até 24/12:** o item Feed só aparece no menu a partir de 24/12 (a data vem da planilha/servidor, no
+fuso de São Paulo). Antes disso, abre quem entra com `?feed` na URL, por exemplo `https://seu-site.vercel.app/?feed`.
+Isso só esconde o menu; quem protege o conteúdo continua sendo a senha. Para mudar a data, edite `FEED_LIBERA` em `public/app.js`.
+
 ## Rodar no computador
 
 ```
