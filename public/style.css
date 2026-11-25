@@ -314,7 +314,8 @@ dialog.sheet::backdrop { background: rgba(5, 9, 22, 0.72); backdrop-filter: blur
 @media (max-width: 719px) { dialog.sheet { margin: auto auto 12px; } }
 .post { display: grid; gap: 5px; padding: 8px; }
 .post-open { display: block; width: 100%; padding: 0; border: 0; background: none; cursor: zoom-in; border-radius: 12px; }
-.post-meta { display: flex; flex-wrap: wrap; gap: 4px 12px; margin: -6px 0 0 6px; font-size: 13px; color: var(--muted); }
+.post-meta { display: flex; flex-wrap: wrap; gap: 4px 12px; margin: 3px 0 2px 6px; font-size: 13px; color: var(--muted); }
+.post-cap + .post-meta { margin-top: -6px; }
 .post-meta span + span::before { content: "·"; margin-right: 12px; }
 .post-img { width: 100%; height: auto; display: block; border-radius: 12px; background: rgba(255, 255, 255, 0.05); }
 .post-cap { margin: 0 0 0 6px; white-space: pre-wrap; overflow-wrap: anywhere; }
