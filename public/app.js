@@ -447,10 +447,8 @@
   function renderFeed() {
     if (!feedState.autor) feedState.autor = lerAutor();
     return `<div class="feed">
-      <div class="feed-top">
-        <h1 class="page">Feed</h1>
-        <button type="button" class="fab" id="feed-add" aria-label="Publicar uma foto">${ic('plus')}</button>
-      </div>
+      <h1 class="sr-only">Feed</h1>
+      <button type="button" class="fab" id="feed-add" aria-label="Publicar uma foto">${ic('plus')}</button>
       <input type="file" id="feed-file" accept="image/*" hidden>
       <input type="file" id="feed-cam" accept="image/*" capture="environment" hidden>
       <p class="feed-status" id="feed-status" role="status"></p>
@@ -709,6 +707,7 @@
     const y = window.scrollY;
     stopTick();
     stopFeedTimer();
+    main.dataset.route = route;
     main.innerHTML = view.render();
     if (route === 'casa' || route === 'comida') bindPeople(route);
     if (route === 'inicio') bindHome();
