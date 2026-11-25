@@ -1,7 +1,7 @@
 'use strict';
 
 const { samePassword } = require('../lib/auth');
-const { FeedErro, criarServico } = require('../lib/feed');
+const { FeedErro, criarServico, dadosDoDispositivo } = require('../lib/feed');
 
 let servico = null;
 
@@ -51,7 +51,7 @@ function criarHandler(fabrica = obterServico) {
         // Sem senha qualquer pessoa poderia enviar fotos: o envio só funciona com acesso protegido.
         if (!password) throw new FeedErro(403, 'envio_bloqueado', 'Para liberar o envio de fotos, defina DASHBOARD_PASSWORD na Vercel.');
         const corpo = await lerJson(req);
-        return res.status(201).json(await fabrica().publicar(corpo));
+        return res.status(201).json(await fabrica().publicar(corpo, dadosDoDispositivo(req.headers)));
       }
       res.setHeader('Allow', 'GET, POST');
       return res.status(405).json({ erro: 'metodo_nao_permitido' });

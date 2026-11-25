@@ -58,9 +58,10 @@ Depois de mudar uma variável, faça um novo deploy.
 
 ## Feed (fotos)
 
-Qualquer pessoa com acesso ao site envia uma foto com legenda e o nome. As fotos ficam no bucket do R2;
-os posts (nome, legenda, chave da foto, data) ficam em uma tabela `feed_posts` no MySQL/MariaDB do VPS,
-que o próprio site cria no primeiro uso. A foto é reduzida no aparelho (lado maior de 1600 px, JPEG) e
+Quem tem acesso ao site toca no **+**, escolhe a foto e depois informa a legenda e o nome (os dois opcionais; sem nome
+a tela mostra "Convidado"). As fotos ficam no bucket do R2; os posts (nome, legenda, chave da foto, data, tamanho,
+IP e navegador de quem enviou) ficam em uma tabela `feed_posts` no MySQL/MariaDB do VPS, que o próprio site cria no primeiro uso.
+O IP e o navegador (`ip`, `user_agent`) são só **gravados**: a API e a tela nunca os devolvem. A foto é reduzida no aparelho (lado maior de 1600 px, JPEG) e
 enviada à função `api/feed.js`, que a grava no R2. Como o envio passa pela Vercel, o bucket **não precisa de CORS**.
 
 **O envio só funciona com `DASHBOARD_PASSWORD` definida** (sem senha, qualquer pessoa da internet poderia

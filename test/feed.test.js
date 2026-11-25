@@ -46,6 +46,30 @@ test('publicar: grava a foto, cria o post e devolve a URL pública', async () =>
   assert.equal(p.criadoEm, '2026-11-25T21:00:00.000Z');
 });
 
+test('publicar: o nome é opcional', async () => {
+  const { servico } = montar();
+  const p = await servico.publicar({ imagem: foto() });
+  assert.equal(p.autor, '');
+  assert.equal(p.legenda, '');
+});
+
+test('publicar: guarda IP e navegador no banco, mas a resposta e a lista não os devolvem', async () => {
+  const { servico, repo } = montar();
+  const disp = F.dadosDoDispositivo({ 'x-forwarded-for': '203.0.113.7, 10.0.0.1', 'user-agent': 'Mozilla/5.0 (iPhone)' });
+  assert.deepEqual(disp, { ip: '203.0.113.7', userAgent: 'Mozilla/5.0 (iPhone)' });
+  const p = await servico.publicar({ autor: 'Ana', imagem: foto() }, disp);
+  assert.equal(repo.linhas[0].ip, '203.0.113.7');
+  assert.equal(repo.linhas[0].userAgent, 'Mozilla/5.0 (iPhone)');
+  const texto = JSON.stringify([p, await servico.listar()]);
+  assert.doesNotMatch(texto, /203\.0\.113|Mozilla|userAgent|"ip"/);
+});
+
+test('dadosDoDispositivo: sem cabeçalhos vira null e limita o tamanho', () => {
+  assert.deepEqual(F.dadosDoDispositivo({}), { ip: null, userAgent: null });
+  assert.equal(F.dadosDoDispositivo({ 'user-agent': 'x'.repeat(400) }).userAgent.length, 255);
+  assert.equal(F.dadosDoDispositivo({ 'x-real-ip': '198.51.100.9' }).ip, '198.51.100.9');
+});
+
 test('publicar: aceita prefixo data: e legenda vazia', async () => {
   const { servico } = montar();
   const p = await servico.publicar({ autor: 'Ana', legenda: '', imagem: `data:image/jpeg;base64,${foto()}` });
@@ -57,7 +81,6 @@ test('publicar: rejeita autor, legenda, foto ausente, tipo e tamanho inválidos'
   const erro = async (corpo, status, codigo) => {
     await assert.rejects(() => servico.publicar(corpo), (e) => e instanceof F.FeedErro && e.status === status && e.codigo === codigo);
   };
-  await erro({ autor: '', imagem: foto() }, 422, 'autor_invalido');
   await erro({ autor: 'x'.repeat(41), imagem: foto() }, 422, 'autor_invalido');
   await erro({ autor: 'Ana', legenda: 'y'.repeat(501), imagem: foto() }, 422, 'legenda_longa');
   await erro({ autor: 'Ana' }, 422, 'foto_ausente');
@@ -101,10 +124,12 @@ test('api/feed: senha, envio bloqueado sem senha configurada e fluxo feliz', asy
     r = await handler({ method: 'POST', headers: { 'x-senha': 'errada' }, body: {} }, resposta());
     assert.equal(r.codigo, 401);
 
-    r = await handler({ method: 'POST', headers: { 'x-senha': 'festa' }, body: { autor: 'Ana', legenda: 'oi', imagem: foto() } }, resposta());
+    r = await handler({ method: 'POST', headers: { 'x-senha': 'festa', 'x-forwarded-for': '203.0.113.7' }, body: { legenda: 'oi', imagem: foto() } }, resposta());
     assert.equal(r.codigo, 201);
+    assert.equal(r.corpo.autor, '');
+    assert.equal(r.corpo.ip, undefined);
     assert.equal(r.headers['Cache-Control'], 'no-store');
-    r = await handler({ method: 'POST', headers: { 'x-senha': 'festa' }, body: { autor: '', imagem: foto() } }, resposta());
+    r = await handler({ method: 'POST', headers: { 'x-senha': 'festa' }, body: { autor: 'x'.repeat(41), imagem: foto() } }, resposta());
     assert.equal(r.codigo, 422);
     r = await handler({ method: 'GET', headers: { 'x-senha': 'festa' }, query: {} }, resposta());
     assert.equal(r.codigo, 200);

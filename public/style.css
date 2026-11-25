@@ -281,16 +281,35 @@ main > * { min-width: 0; }
 
 /* ------------------------------------------------------------------------ feed */
 .feed { display: grid; gap: 20px; max-width: 560px; width: 100%; margin-inline: auto; }
-.composer { display: grid; gap: 14px; }
-.composer .preview { width: 100%; height: auto; border-radius: 14px; display: block; background: rgba(255, 255, 255, 0.04); }
-.composer input[type="text"], .composer textarea {
+.feed-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.feed-top .page { margin: 0; }
+.fab {
+  width: 48px; height: 48px; border-radius: 50%; border: 0; flex: none; display: grid; place-items: center; cursor: pointer;
+  font-size: 20px; color: var(--on-gold); background: linear-gradient(135deg, var(--gold), var(--gold-2));
+  box-shadow: 0 8px 24px rgba(212, 162, 76, 0.25);
+}
+.fab:disabled { opacity: 0.6; cursor: progress; }
+.feed-status { margin: 0; min-height: 0; font-size: 14px; color: var(--ink-2); }
+.feed-status:empty { display: none; }
+.feed-status.err, .composer-msg.err { color: #FFB4A8; }
+.composer-msg { margin: 0; font-size: 14px; color: var(--ink-2); min-height: 1em; }
+dialog.sheet {
+  width: min(480px, calc(100% - 24px)); max-height: calc(100dvh - 24px); overflow: auto; padding: 18px;
+  color: var(--ink); background: var(--bg-2); border: 1px solid var(--line); border-radius: 20px;
+}
+dialog.sheet[open] { display: grid; gap: 12px; }
+dialog.sheet::backdrop { background: rgba(5, 9, 22, 0.72); backdrop-filter: blur(4px); }
+.sheet-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.sheet-head h2 { margin: 0; font: 600 18px/1.2 var(--display); }
+.icon-btn { width: 36px; height: 36px; border-radius: 50%; border: 0; display: grid; place-items: center; cursor: pointer; color: var(--ink); background: rgba(255, 255, 255, 0.08); }
+.sheet .preview { width: 100%; height: auto; max-height: 42dvh; object-fit: contain; border-radius: 14px; background: rgba(255, 255, 255, 0.04); }
+.sheet input[type="text"], .sheet textarea {
   font: inherit; color: var(--ink); background: rgba(255, 255, 255, 0.04); border: 1px solid var(--line);
   border-radius: 12px; padding: 12px 14px; width: 100%; resize: vertical;
 }
-.composer textarea { min-height: 84px; }
-.composer-actions { display: flex; flex-wrap: wrap; gap: 10px; }
-.composer-msg { margin: 0; font-size: 14px; color: var(--ink-2); }
-.composer-msg.err { color: #FFB4A8; }
+.sheet textarea { min-height: 76px; }
+.sheet-actions { display: flex; justify-content: flex-end; gap: 10px; }
+@media (max-width: 719px) { dialog.sheet { margin: auto auto 12px; } }
 .post { display: grid; gap: 12px; padding: 16px; }
 .post-head { display: flex; align-items: center; gap: 12px; }
 .avatar {

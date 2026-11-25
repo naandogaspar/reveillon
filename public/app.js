@@ -397,10 +397,11 @@
   }
 
   // ----------------------------------------------------------------------- feed
-  // Timeline de fotos: quem tem acesso envia uma foto com legenda. A foto é reduzida no
-  // aparelho antes de subir (rápido no celular) e o servidor a grava no R2.
+  // Timeline de fotos. O botão "+" abre a escolha da foto; depois da escolha, uma folha pede a
+  // legenda e o nome (opcional). A foto é reduzida no aparelho antes de subir.
   const feedState = { itens: [], temMais: false, carregado: false, erro: '', enviando: false, autor: '', legenda: '', foto: null };
   let feedTimer = null;
+  let statusTimer = null;
   const stopFeedTimer = () => { clearInterval(feedTimer); feedTimer = null; };
   const lerAutor = () => { try { return localStorage.getItem('reveillon-autor') || ''; } catch (_) { return ''; } };
   const guardarAutor = (v) => { try { localStorage.setItem('reveillon-autor', v); } catch (_) { /* ok */ } };
@@ -424,12 +425,13 @@
   }
 
   function postHtml(p) {
-    const inicial = esc((p.autor || '?').trim().charAt(0).toUpperCase());
-    const legenda = p.legenda ? `<p class="post-cap"><strong>${esc(p.autor)}</strong>${esc(p.legenda)}</p>` : '';
+    const nome = p.autor || 'Convidado';
+    const avatar = p.autor ? esc(p.autor.charAt(0).toUpperCase()) : ic('user');
+    const legenda = p.legenda ? `<p class="post-cap">${p.autor ? `<strong>${esc(p.autor)}</strong>` : ''}${esc(p.legenda)}</p>` : '';
     return `<article class="panel post">
-      <div class="post-head"><span class="avatar" aria-hidden="true">${inicial}</span>
-        <div class="post-who"><strong>${esc(p.autor)}</strong><span class="post-when">${esc(quando(p.criadoEm))}</span></div></div>
-      <img class="post-img" src="${esc(p.imagem)}" width="${p.largura}" height="${p.altura}" loading="lazy" decoding="async" alt="${esc(p.legenda || `Foto de ${p.autor}`)}">
+      <div class="post-head"><span class="avatar" aria-hidden="true">${avatar}</span>
+        <div class="post-who"><strong>${esc(nome)}</strong><span class="post-when">${esc(quando(p.criadoEm))}</span></div></div>
+      <img class="post-img" src="${esc(p.imagem)}" width="${p.largura}" height="${p.altura}" loading="lazy" decoding="async" alt="${esc(p.legenda || `Foto de ${nome}`)}">
       ${legenda}
     </article>`;
   }
@@ -437,31 +439,37 @@
   function feedListHtml() {
     if (feedState.erro && !feedState.itens.length) return `<p class="note">${ic('info')}<span>${esc(feedState.erro)}</span></p>`;
     if (!feedState.carregado) return '<p class="state">Carregando…</p>';
-    if (!feedState.itens.length) return '<p class="empty">Ainda não há fotos. Seja o primeiro a publicar.</p>';
+    if (!feedState.itens.length) return '<p class="empty">Ainda não há fotos. Toque no + para publicar a primeira.</p>';
     return feedState.itens.map(postHtml).join('')
       + (feedState.temMais ? `<button type="button" class="btn btn--ghost" id="feed-mais">Ver fotos mais antigas</button>` : '');
   }
 
-  function composerHtml() {
-    const f = feedState.foto;
-    return `<section class="panel composer" aria-label="Nova publicação">
-      <input type="file" id="feed-file" accept="image/*" hidden>
-      ${f ? `<img class="preview" src="${esc(f.url)}" width="${f.w}" height="${f.h}" alt="Prévia da foto escolhida">` : ''}
-      <div class="composer-actions"><button type="button" class="btn btn--ghost" id="feed-pick">${ic('camera')}<span>${f ? 'Trocar foto' : 'Escolher foto'}</span></button></div>
-      <label class="sub" for="feed-autor">Seu nome</label>
-      <input type="text" id="feed-autor" maxlength="40" autocomplete="name" value="${esc(feedState.autor)}">
-      <label class="sub" for="feed-legenda">Legenda</label>
-      <textarea id="feed-legenda" maxlength="500" placeholder="Escreva uma legenda (opcional)">${esc(feedState.legenda)}</textarea>
-      <p class="composer-msg" id="feed-msg" role="status"></p>
-      <div class="composer-actions"><button type="button" class="btn" id="feed-send"${f && !feedState.enviando ? '' : ' disabled'}>${ic('paper-plane')}<span>${feedState.enviando ? 'Publicando…' : 'Publicar'}</span></button></div>
-    </section>`;
-  }
-
   function renderFeed() {
     if (!feedState.autor) feedState.autor = lerAutor();
-    return `<h1 class="page">Feed</h1>
-      <div class="feed">${composerHtml()}<div id="feed-list" class="feed" aria-live="polite">${feedListHtml()}</div></div>
-      ${footer()}`;
+    return `<div class="feed">
+      <div class="feed-top">
+        <h1 class="page">Feed</h1>
+        <button type="button" class="fab" id="feed-add" aria-label="Publicar uma foto">${ic('plus')}</button>
+      </div>
+      <input type="file" id="feed-file" accept="image/*" hidden>
+      <p class="feed-status" id="feed-status" role="status"></p>
+      <div id="feed-list" class="feed" aria-live="polite">${feedListHtml()}</div>
+    </div>
+    <dialog class="sheet" id="feed-sheet" aria-labelledby="feed-sheet-title">
+      <div class="sheet-head"><h2 id="feed-sheet-title">Nova publicação</h2>
+        <button type="button" class="icon-btn" id="feed-close" aria-label="Fechar">${ic('xmark')}</button></div>
+      <img class="preview" id="feed-preview" alt="Prévia da foto escolhida">
+      <label class="sr-only" for="feed-legenda">Legenda</label>
+      <textarea id="feed-legenda" maxlength="500" placeholder="Escreva uma legenda…"></textarea>
+      <label class="sr-only" for="feed-autor">Seu nome (opcional)</label>
+      <input type="text" id="feed-autor" maxlength="40" autocomplete="name" placeholder="Seu nome (opcional)">
+      <p class="composer-msg" id="feed-msg" role="status"></p>
+      <div class="sheet-actions">
+        <button type="button" class="btn btn--ghost" id="feed-cancel">Cancelar</button>
+        <button type="button" class="btn" id="feed-send">${ic('paper-plane')}<span>Publicar</span></button>
+      </div>
+    </dialog>
+    ${footer()}`;
   }
 
   // Reduz a foto no aparelho: lado maior de 1600 px, JPEG, até ~1,5 MB.
@@ -509,43 +517,66 @@
       feedState.erro = e.message;
     }
     feedState.carregado = true;
-    const lista = document.getElementById('feed-list');
-    if (lista && currentRoute() === 'feed') { lista.innerHTML = feedListHtml(); bindFeedList(); }
+    atualizarListaFeed();
   }
 
-  function bindFeedList() {
+  function atualizarListaFeed() {
+    const lista = document.getElementById('feed-list');
+    if (!lista || currentRoute() !== 'feed') return;
+    lista.innerHTML = feedListHtml();
     const mais = document.getElementById('feed-mais');
     if (mais) mais.addEventListener('click', () => { mais.disabled = true; carregarFeed({ mais: true }); });
   }
 
   function bindFeed() {
-    const pick = document.getElementById('feed-pick');
-    const file = document.getElementById('feed-file');
-    const send = document.getElementById('feed-send');
-    const msg = document.getElementById('feed-msg');
-    const autor = document.getElementById('feed-autor');
-    const legenda = document.getElementById('feed-legenda');
+    const $ = (id) => document.getElementById(id);
+    const sheet = $('feed-sheet'), file = $('feed-file'), msg = $('feed-msg'), status = $('feed-status');
+    const legenda = $('feed-legenda'), autor = $('feed-autor'), send = $('feed-send'), add = $('feed-add');
     const aviso = (t, erro) => { msg.textContent = t; msg.classList.toggle('err', Boolean(erro)); };
+    const avisoPagina = (t, erro) => {
+      status.textContent = t; status.classList.toggle('err', Boolean(erro));
+      clearTimeout(statusTimer);
+      if (t) statusTimer = setTimeout(() => { status.textContent = ''; }, 5000);
+    };
+    const fechar = () => {
+      if (sheet.open) sheet.close();
+      if (feedState.foto) URL.revokeObjectURL(feedState.foto.url);
+      feedState.foto = null; feedState.legenda = ''; file.value = '';
+    };
 
-    autor.addEventListener('input', () => { feedState.autor = autor.value; });
-    legenda.addEventListener('input', () => { feedState.legenda = legenda.value; });
-    pick.addEventListener('click', () => file.click());
+    add.addEventListener('click', () => file.click());
     file.addEventListener('change', async () => {
       const f = file.files && file.files[0];
       if (!f) return;
-      aviso('Preparando a foto…');
+      add.disabled = true;
+      avisoPagina('Preparando a foto…');
       try {
         const nova = await prepararFoto(f);
         if (feedState.foto) URL.revokeObjectURL(feedState.foto.url);
         feedState.foto = nova;
-        main.innerHTML = renderFeed(); bindFeed(); bindFeedList();
-      } catch (e) { aviso(e.message, true); }
+        $('feed-preview').src = nova.url;
+        legenda.value = feedState.legenda;
+        autor.value = feedState.autor;
+        aviso('');
+        send.disabled = false; send.querySelector('span').textContent = 'Publicar';
+        avisoPagina('');
+        sheet.showModal();
+        legenda.focus();
+      } catch (e) { avisoPagina(e.message, true); }
+      add.disabled = false;
     });
+
+    legenda.addEventListener('input', () => { feedState.legenda = legenda.value; });
+    autor.addEventListener('input', () => { feedState.autor = autor.value; });
+    $('feed-close').addEventListener('click', () => { if (!feedState.enviando) fechar(); });
+    $('feed-cancel').addEventListener('click', () => { if (!feedState.enviando) fechar(); });
+    sheet.addEventListener('cancel', (e) => { if (feedState.enviando) e.preventDefault(); else fechar(); });
+    sheet.addEventListener('click', (e) => { if (e.target === sheet && !feedState.enviando) fechar(); }); // toque fora
+
     send.addEventListener('click', async () => {
-      const nome = feedState.autor.trim();
-      if (!feedState.foto) return aviso('Escolha uma foto para publicar.', true);
-      if (!nome) { autor.focus(); return aviso('Informe seu nome.', true); }
+      if (!feedState.foto || feedState.enviando) return;
       feedState.enviando = true; send.disabled = true; send.querySelector('span').textContent = 'Publicando…'; aviso('');
+      const nome = feedState.autor.trim();
       try {
         const imagem = await blobParaBase64(feedState.foto.blob);
         const post = await feedFetch('/api/feed', {
@@ -553,18 +584,19 @@
           body: JSON.stringify({ autor: nome, legenda: feedState.legenda, imagem }),
         });
         guardarAutor(nome);
-        URL.revokeObjectURL(feedState.foto.url);
-        feedState.foto = null; feedState.legenda = ''; feedState.erro = '';
-        feedState.itens = [post, ...feedState.itens]; feedState.carregado = true;
+        feedState.erro = ''; feedState.carregado = true;
+        feedState.itens = [post, ...feedState.itens];
         feedState.enviando = false;
-        main.innerHTML = renderFeed(); bindFeed(); bindFeedList();
-        document.getElementById('feed-msg').textContent = 'Foto publicada.';
+        fechar();
+        atualizarListaFeed();
+        avisoPagina('Foto publicada.');
       } catch (e) {
         feedState.enviando = false;
         if (e.message !== 'login') { send.disabled = false; send.querySelector('span').textContent = 'Publicar'; aviso(e.message, true); }
       }
     });
-    bindFeedList();
+
+    atualizarListaFeed();
     // Enquanto a aba está aberta, busca fotos novas a cada 30 s (sem mexer no que está sendo digitado).
     stopFeedTimer();
     feedTimer = setInterval(() => { if (!document.hidden && !feedState.enviando) carregarFeed(); }, 30 * 1000);
