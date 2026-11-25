@@ -426,13 +426,13 @@
 
   function postHtml(p) {
     const nome = p.autor || 'Convidado';
-    const avatar = p.autor ? esc(p.autor.charAt(0).toUpperCase()) : ic('user');
-    const legenda = p.legenda ? `<p class="post-cap">${p.autor ? `<strong>${esc(p.autor)}</strong>` : ''}${esc(p.legenda)}</p>` : '';
+    const legenda = p.legenda ? `<p class="post-cap">${esc(p.legenda)}</p>` : '';
     return `<article class="panel post">
-      <div class="post-head"><span class="avatar" aria-hidden="true">${avatar}</span>
-        <div class="post-who"><strong>${esc(nome)}</strong><span class="post-when">${esc(quando(p.criadoEm))}</span></div></div>
-      <img class="post-img" src="${esc(p.imagem)}" width="${p.largura}" height="${p.altura}" loading="lazy" decoding="async" alt="${esc(p.legenda || `Foto de ${nome}`)}">
+      <button type="button" class="post-open" data-src="${esc(p.imagem)}" data-alt="${esc(p.legenda || `Foto de ${nome}`)}" aria-label="Ver a foto em tela cheia">
+        <img class="post-img" src="${esc(p.imagem)}" width="${p.largura}" height="${p.altura}" loading="lazy" decoding="async" alt="${esc(p.legenda || `Foto de ${nome}`)}">
+      </button>
       ${legenda}
+      <p class="post-meta"><span>${esc(nome)}</span><span>${esc(quando(p.criadoEm))}</span></p>
     </article>`;
   }
 
@@ -469,7 +469,10 @@
         <button type="button" class="btn" id="feed-send">${ic('paper-plane')}<span>Publicar</span></button>
       </div>
     </dialog>
-    ${footer()}`;
+    <dialog class="viewer" id="feed-viewer" aria-label="Foto ampliada">
+      <button type="button" class="icon-btn viewer-close" id="viewer-close" aria-label="Fechar">${ic('xmark')}</button>
+      <img id="viewer-img" alt="">
+    </dialog>`;
   }
 
   // Reduz a foto no aparelho: lado maior de 1600 px, JPEG, até ~1,5 MB.
@@ -595,6 +598,18 @@
         if (e.message !== 'login') { send.disabled = false; send.querySelector('span').textContent = 'Publicar'; aviso(e.message, true); }
       }
     });
+
+    // Foto em tela cheia: acompanha a rotação do aparelho (se a rotação automática estiver ligada).
+    const viewer = $('feed-viewer'), vimg = $('viewer-img');
+    $('feed-list').addEventListener('click', (e) => {
+      const b = e.target.closest('.post-open');
+      if (!b) return;
+      vimg.src = b.dataset.src; vimg.alt = b.dataset.alt;
+      viewer.showModal();
+    });
+    viewer.addEventListener('click', () => viewer.close()); // toque em qualquer lugar fecha
+    $('viewer-close').addEventListener('click', (e) => { e.stopPropagation(); viewer.close(); });
+    viewer.addEventListener('close', () => { vimg.removeAttribute('src'); });
 
     atualizarListaFeed();
     // Enquanto a aba está aberta, busca fotos novas a cada 30 s (sem mexer no que está sendo digitado).
