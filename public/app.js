@@ -33,6 +33,7 @@
     casa: { title: 'Casa', render: () => renderPeople('casa') },
     comida: { title: 'Comida', render: () => renderPeople('comida') },
     cerveja: { title: 'Cerveja', render: renderBeer },
+    feed: { title: 'Feed', render: renderFeed },
     gastos: { title: 'Gastos', render: renderExpenses },
   };
 
@@ -395,6 +396,181 @@
     });
   }
 
+  // ----------------------------------------------------------------------- feed
+  // Timeline de fotos: quem tem acesso envia uma foto com legenda. A foto é reduzida no
+  // aparelho antes de subir (rápido no celular) e o servidor a grava no R2.
+  const feedState = { itens: [], temMais: false, carregado: false, erro: '', enviando: false, autor: '', legenda: '', foto: null };
+  let feedTimer = null;
+  const stopFeedTimer = () => { clearInterval(feedTimer); feedTimer = null; };
+  const lerAutor = () => { try { return localStorage.getItem('reveillon-autor') || ''; } catch (_) { return ''; } };
+  const guardarAutor = (v) => { try { localStorage.setItem('reveillon-autor', v); } catch (_) { /* ok */ } };
+  const quando = (iso) => {
+    const min = Math.floor((Date.now() - Date.parse(iso)) / 60000);
+    if (min < 1) return 'agora';
+    if (min < 60) return `há ${min} min`;
+    if (min < 1440) return `há ${Math.floor(min / 60)} h`;
+    return new Intl.DateTimeFormat('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }).format(new Date(iso)).replace(',', ' às');
+  };
+
+  async function feedFetch(url, opts = {}) {
+    const headers = { ...(opts.headers || {}) };
+    const pass = getPass();
+    if (pass) headers['x-senha'] = pass;
+    const res = await fetch(url, { ...opts, headers, cache: 'no-store' });
+    if (res.status === 401) { clearPass(); showLoginForm(Boolean(pass)); throw new Error('login'); }
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(body.detalhe || `Erro ${res.status}`);
+    return body;
+  }
+
+  function postHtml(p) {
+    const inicial = esc((p.autor || '?').trim().charAt(0).toUpperCase());
+    const legenda = p.legenda ? `<p class="post-cap"><strong>${esc(p.autor)}</strong>${esc(p.legenda)}</p>` : '';
+    return `<article class="panel post">
+      <div class="post-head"><span class="avatar" aria-hidden="true">${inicial}</span>
+        <div class="post-who"><strong>${esc(p.autor)}</strong><span class="post-when">${esc(quando(p.criadoEm))}</span></div></div>
+      <img class="post-img" src="${esc(p.imagem)}" width="${p.largura}" height="${p.altura}" loading="lazy" decoding="async" alt="${esc(p.legenda || `Foto de ${p.autor}`)}">
+      ${legenda}
+    </article>`;
+  }
+
+  function feedListHtml() {
+    if (feedState.erro && !feedState.itens.length) return `<p class="note">${ic('info')}<span>${esc(feedState.erro)}</span></p>`;
+    if (!feedState.carregado) return '<p class="state">Carregando…</p>';
+    if (!feedState.itens.length) return '<p class="empty">Ainda não há fotos. Seja o primeiro a publicar.</p>';
+    return feedState.itens.map(postHtml).join('')
+      + (feedState.temMais ? `<button type="button" class="btn btn--ghost" id="feed-mais">Ver fotos mais antigas</button>` : '');
+  }
+
+  function composerHtml() {
+    const f = feedState.foto;
+    return `<section class="panel composer" aria-label="Nova publicação">
+      <input type="file" id="feed-file" accept="image/*" hidden>
+      ${f ? `<img class="preview" src="${esc(f.url)}" width="${f.w}" height="${f.h}" alt="Prévia da foto escolhida">` : ''}
+      <div class="composer-actions"><button type="button" class="btn btn--ghost" id="feed-pick">${ic('camera')}<span>${f ? 'Trocar foto' : 'Escolher foto'}</span></button></div>
+      <label class="sub" for="feed-autor">Seu nome</label>
+      <input type="text" id="feed-autor" maxlength="40" autocomplete="name" value="${esc(feedState.autor)}">
+      <label class="sub" for="feed-legenda">Legenda</label>
+      <textarea id="feed-legenda" maxlength="500" placeholder="Escreva uma legenda (opcional)">${esc(feedState.legenda)}</textarea>
+      <p class="composer-msg" id="feed-msg" role="status"></p>
+      <div class="composer-actions"><button type="button" class="btn" id="feed-send"${f && !feedState.enviando ? '' : ' disabled'}>${ic('paper-plane')}<span>${feedState.enviando ? 'Publicando…' : 'Publicar'}</span></button></div>
+    </section>`;
+  }
+
+  function renderFeed() {
+    if (!feedState.autor) feedState.autor = lerAutor();
+    return `<h1 class="page">Feed</h1>
+      <div class="feed">${composerHtml()}<div id="feed-list" class="feed" aria-live="polite">${feedListHtml()}</div></div>
+      ${footer()}`;
+  }
+
+  // Reduz a foto no aparelho: lado maior de 1600 px, JPEG, até ~1,5 MB.
+  async function prepararFoto(file) {
+    let bmp;
+    try { bmp = await createImageBitmap(file, { imageOrientation: 'from-image' }); } catch (_) {
+      bmp = await new Promise((ok, falha) => {
+        const img = new Image(); const u = URL.createObjectURL(file);
+        img.onload = () => { URL.revokeObjectURL(u); ok(img); };
+        img.onerror = () => { URL.revokeObjectURL(u); falha(new Error('Não foi possível abrir essa foto. Tente outra.')); };
+        img.src = u;
+      });
+    }
+    const w0 = bmp.naturalWidth || bmp.width, h0 = bmp.naturalHeight || bmp.height;
+    const escala = Math.min(1, 1600 / Math.max(w0, h0));
+    const w = Math.round(w0 * escala), h = Math.round(h0 * escala);
+    const canvas = document.createElement('canvas');
+    canvas.width = w; canvas.height = h;
+    canvas.getContext('2d').drawImage(bmp, 0, 0, w, h);
+    let blob = null;
+    for (const q of [0.85, 0.75, 0.65, 0.55]) {
+      blob = await new Promise((ok) => canvas.toBlob(ok, 'image/jpeg', q));
+      if (blob && blob.size <= 1.5 * 1024 * 1024) break;
+    }
+    if (!blob) throw new Error('Não foi possível preparar essa foto. Tente outra.');
+    return { blob, w, h, url: URL.createObjectURL(blob) };
+  }
+
+  const blobParaBase64 = (blob) => new Promise((ok, falha) => {
+    const r = new FileReader();
+    r.onload = () => ok(String(r.result).split(',')[1] || '');
+    r.onerror = () => falha(new Error('Não foi possível ler a foto.'));
+    r.readAsDataURL(blob);
+  });
+
+  async function carregarFeed({ mais = false } = {}) {
+    try {
+      const antes = mais && feedState.itens.length ? `?antes=${feedState.itens.at(-1).id}` : '';
+      const r = await feedFetch(`/api/feed${antes}`);
+      feedState.itens = mais ? feedState.itens.concat(r.itens) : r.itens;
+      feedState.temMais = r.temMais;
+      feedState.erro = '';
+    } catch (e) {
+      if (e.message === 'login') return;
+      feedState.erro = e.message;
+    }
+    feedState.carregado = true;
+    const lista = document.getElementById('feed-list');
+    if (lista && currentRoute() === 'feed') { lista.innerHTML = feedListHtml(); bindFeedList(); }
+  }
+
+  function bindFeedList() {
+    const mais = document.getElementById('feed-mais');
+    if (mais) mais.addEventListener('click', () => { mais.disabled = true; carregarFeed({ mais: true }); });
+  }
+
+  function bindFeed() {
+    const pick = document.getElementById('feed-pick');
+    const file = document.getElementById('feed-file');
+    const send = document.getElementById('feed-send');
+    const msg = document.getElementById('feed-msg');
+    const autor = document.getElementById('feed-autor');
+    const legenda = document.getElementById('feed-legenda');
+    const aviso = (t, erro) => { msg.textContent = t; msg.classList.toggle('err', Boolean(erro)); };
+
+    autor.addEventListener('input', () => { feedState.autor = autor.value; });
+    legenda.addEventListener('input', () => { feedState.legenda = legenda.value; });
+    pick.addEventListener('click', () => file.click());
+    file.addEventListener('change', async () => {
+      const f = file.files && file.files[0];
+      if (!f) return;
+      aviso('Preparando a foto…');
+      try {
+        const nova = await prepararFoto(f);
+        if (feedState.foto) URL.revokeObjectURL(feedState.foto.url);
+        feedState.foto = nova;
+        main.innerHTML = renderFeed(); bindFeed(); bindFeedList();
+      } catch (e) { aviso(e.message, true); }
+    });
+    send.addEventListener('click', async () => {
+      const nome = feedState.autor.trim();
+      if (!feedState.foto) return aviso('Escolha uma foto para publicar.', true);
+      if (!nome) { autor.focus(); return aviso('Informe seu nome.', true); }
+      feedState.enviando = true; send.disabled = true; send.querySelector('span').textContent = 'Publicando…'; aviso('');
+      try {
+        const imagem = await blobParaBase64(feedState.foto.blob);
+        const post = await feedFetch('/api/feed', {
+          method: 'POST', headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ autor: nome, legenda: feedState.legenda, imagem }),
+        });
+        guardarAutor(nome);
+        URL.revokeObjectURL(feedState.foto.url);
+        feedState.foto = null; feedState.legenda = ''; feedState.erro = '';
+        feedState.itens = [post, ...feedState.itens]; feedState.carregado = true;
+        feedState.enviando = false;
+        main.innerHTML = renderFeed(); bindFeed(); bindFeedList();
+        document.getElementById('feed-msg').textContent = 'Foto publicada.';
+      } catch (e) {
+        feedState.enviando = false;
+        if (e.message !== 'login') { send.disabled = false; send.querySelector('span').textContent = 'Publicar'; aviso(e.message, true); }
+      }
+    });
+    bindFeedList();
+    // Enquanto a aba está aberta, busca fotos novas a cada 30 s (sem mexer no que está sendo digitado).
+    stopFeedTimer();
+    feedTimer = setInterval(() => { if (!document.hidden && !feedState.enviando) carregarFeed(); }, 30 * 1000);
+    carregarFeed();
+  }
+
   // -------------------------------------------------------- estados e carga
   let memoryPass = '';
   const getPass = () => { try { return localStorage.getItem('reveillon-senha') || memoryPass; } catch (_) { return memoryPass; } };
@@ -450,6 +626,7 @@
     if (!data) return;
     // Atualização automática não pode tirar o foco de quem está digitando na busca.
     if (!resetScroll && document.activeElement && document.activeElement.id === 'q') return;
+    if (!resetScroll && currentRoute() === 'feed') return; // o feed se atualiza sozinho; não apagar o que está sendo digitado
     const route = currentRoute();
     const view = ROUTES[route];
     document.getElementById('brand').textContent = data.titulo;
@@ -459,10 +636,12 @@
     });
     const y = window.scrollY;
     stopTick();
+    stopFeedTimer();
     main.innerHTML = view.render();
     if (route === 'casa' || route === 'comida') bindPeople(route);
     if (route === 'inicio') bindHome();
     if (route === 'cerveja') bindBeer();
+    if (route === 'feed') bindFeed();
     if (resetScroll) { window.scrollTo(0, 0); main.focus({ preventScroll: true }); } else { window.scrollTo(0, y); }
   }
 

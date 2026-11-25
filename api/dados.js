@@ -1,17 +1,11 @@
 'use strict';
 
-const crypto = require('node:crypto');
+const { samePassword } = require('../lib/auth');
 const { loadDashboard, DEFAULT_SHEET_ID } = require('../lib/sheet');
 
 // Cache em memória (por instância da função) para não consultar o Google a cada visita.
 let memo = null;
 const MEMO_MS = 15 * 1000;
-
-function samePassword(given, expected) {
-  const a = crypto.createHash('sha256').update(String(given || '')).digest();
-  const b = crypto.createHash('sha256').update(String(expected)).digest();
-  return crypto.timingSafeEqual(a, b);
-}
 
 module.exports = async function handler(req, res) {
   const password = process.env.DASHBOARD_PASSWORD;
