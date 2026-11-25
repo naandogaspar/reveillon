@@ -57,8 +57,10 @@ function criarHandler(fabrica = obterServico) {
       return res.status(405).json({ erro: 'metodo_nao_permitido' });
     } catch (err) {
       if (err instanceof FeedErro) return res.status(err.status).json({ erro: err.codigo, detalhe: err.message });
-      console.error('feed:', err && err.message);
-      return res.status(502).json({ erro: 'feed_indisponivel', detalhe: 'Não foi possível acessar o feed agora. Tente de novo em instantes.' });
+      console.error('feed:', err && err.code, err && err.message);
+      // O código (ex.: ETIMEDOUT, ER_ACCESS_DENIED_ERROR) ajuda a achar o problema e não revela segredos.
+      const codigo = err && err.code ? ` (${err.code})` : '';
+      return res.status(502).json({ erro: 'feed_indisponivel', detalhe: `Não foi possível acessar o banco do feed agora${codigo}. Tente de novo em instantes.` });
     }
   };
 }

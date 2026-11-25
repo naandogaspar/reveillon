@@ -153,3 +153,25 @@ test('api/feed: sem configuração devolve 503 explicando o que falta', async ()
     Object.assign(process.env, guardado);
   }
 });
+
+test('publicar: falha no R2 vira erro claro e nada é gravado no banco', async () => {
+  const repo = repoMemoria();
+  const servico = F.criarServico({
+    repo, publicUrl: 'https://pub.r2.dev',
+    armazenamento: { async enviar() { throw new Error('R2 respondeu 403 SignatureDoesNotMatch'); } },
+  });
+  await assert.rejects(() => servico.publicar({ autor: 'Ana', imagem: foto() }),
+    (e) => e instanceof F.FeedErro && e.status === 502 && e.codigo === 'armazenamento_falhou' && /SignatureDoesNotMatch/.test(e.message));
+  assert.equal(repo.linhas.length, 0);
+});
+
+test('api/feed: falha do banco devolve 502 com o código do erro', async () => {
+  const handler = criarHandler(() => ({ listar: async () => { const e = new Error('x'); e.code = 'ETIMEDOUT'; throw e; } }));
+  const anterior = process.env.DASHBOARD_PASSWORD;
+  delete process.env.DASHBOARD_PASSWORD;
+  try {
+    const r = await handler({ method: 'GET', headers: {}, query: {} }, resposta());
+    assert.equal(r.codigo, 502);
+    assert.match(r.corpo.detalhe, /ETIMEDOUT/);
+  } finally { if (anterior !== undefined) process.env.DASHBOARD_PASSWORD = anterior; }
+});
