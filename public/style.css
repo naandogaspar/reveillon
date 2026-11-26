@@ -331,3 +331,21 @@ dialog.viewer img { max-width: 100vw; max-height: 100dvh; width: auto; height: a
 
 dialog.sheet--small { width: min(360px, calc(100% - 24px)); }
 .choice { width: 100%; justify-content: flex-start; padding: 14px 18px; }
+
+/* Corte de foto */
+dialog.cropper { width: min(560px, calc(100% - 24px)); }
+.crop-stage { display: grid; place-items: center; }
+.crop-canvas { display: block; touch-action: none; border-radius: 10px; max-width: 100%; user-select: none; -webkit-user-select: none; }
+.crop-presets { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: none; }
+.crop-presets::-webkit-scrollbar { display: none; }
+.chip {
+  flex: 0 0 auto; font-weight: 600; font-size: 14px; font-family: inherit; padding: 10px 14px; border-radius: 999px; cursor: pointer;
+  color: var(--ink-2); background: rgba(255, 255, 255, 0.06); border: 1px solid var(--line);
+}
+.chip[aria-pressed="true"] { color: var(--gold); border-color: var(--gold); background: rgba(232, 203, 138, 0.12); }
+.sheet-actions .feed-crop { margin-right: auto; }
+dialog.sheet[open] { grid-template-columns: minmax(0, 1fr); }
+.sheet-actions { flex-wrap: wrap; }
+.sheet-actions .btn { padding-left: 16px; padding-right: 16px; }
+.sheet-actions { flex-wrap: nowrap; gap: 8px; }
+.sheet-actions .btn { padding-left: 12px; padding-right: 12px; white-space: nowrap; }

@@ -63,7 +63,8 @@ a tela mostra "Convidado"). As fotos ficam no bucket do R2; os posts (nome, lege
 IP e navegador de quem enviou) ficam em uma tabela `feed_posts` no MySQL/MariaDB do VPS, que o próprio site cria no primeiro uso.
 O IP e o navegador (`ip`, `user_agent`) são só **gravados**: a API e a tela nunca os devolvem. A foto é reduzida no aparelho (lado maior de 1600 px) e enviada à função `api/feed.js`, que a converte para
 **WebP** (qualidade 78, rotação do celular corrigida, com a biblioteca `sharp`) antes de gravá-la no R2. Na tela, a foto
-tem altura máxima (65% da tela, até 560 px), mantendo a proporção; tocar nela abre a imagem inteira. Como o envio passa pela Vercel, o bucket **não precisa de CORS**.
+tem altura máxima (65% da tela, até 560 px), mantendo a proporção; tocar nela abre a imagem inteira.
+Ao escolher a foto (câmera ou galeria) abre a tela de **corte**: moldura livre (arraste os cantos, as bordas ou mova a moldura) e atalhos de proporção — 1:1, 4:5 (retrato do Instagram), 9:16 (Stories/Reels), 16:9, 4:3 e 3:4. "Concluir" sem mexer mantém a foto inteira, e o botão "Cortar" na tela de publicação reabre o corte (código em `public/crop.js`). Como o envio passa pela Vercel, o bucket **não precisa de CORS**.
 
 **O envio só funciona com `DASHBOARD_PASSWORD` definida** (sem senha, qualquer pessoa da internet poderia
 publicar). Sem as variáveis abaixo, a aba mostra quais estão faltando.

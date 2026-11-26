@@ -18,6 +18,7 @@
     const i = (window.ICONS || {})[name];
     return i ? `<svg class="i" viewBox="0 0 ${i[0]} ${i[1]}" aria-hidden="true" focusable="false"><path fill="currentColor" d="${i[2]}"/></svg>` : '';
   };
+  window.ic = ic;
   document.querySelectorAll('[data-icon]').forEach((el) => { el.innerHTML = ic(el.dataset.icon); });
 
   // Endereço da chácara (fixo no código; para mudar, edite aqui).
@@ -399,7 +400,7 @@
   // ----------------------------------------------------------------------- feed
   // Timeline de fotos. O botão "+" abre a escolha da foto; depois da escolha, uma folha pede a
   // legenda e o nome (opcional). A foto é reduzida no aparelho antes de subir.
-  const feedState = { itens: [], temMais: false, carregado: false, erro: '', enviando: false, autor: '', legenda: '', foto: null };
+  const feedState = { itens: [], temMais: false, carregado: false, erro: '', enviando: false, autor: '', legenda: '', foto: null, fonte: null, rect: null };
   let feedTimer = null;
   let statusTimer = null;
   const stopFeedTimer = () => { clearInterval(feedTimer); feedTimer = null; };
@@ -470,6 +471,7 @@
       <input type="text" id="feed-autor" maxlength="40" autocomplete="name" placeholder="Seu nome (opcional)">
       <p class="composer-msg" id="feed-msg" role="status"></p>
       <div class="sheet-actions">
+        <button type="button" class="btn btn--ghost feed-crop" id="feed-crop">${ic('crop')}<span>Cortar</span></button>
         <button type="button" class="btn btn--ghost" id="feed-cancel">Cancelar</button>
         <button type="button" class="btn" id="feed-send">${ic('paper-plane')}<span>Publicar</span></button>
       </div>
@@ -480,8 +482,8 @@
     </dialog>`;
   }
 
-  // Reduz a foto no aparelho: lado maior de 1600 px, JPEG, até ~1,5 MB.
-  async function prepararFoto(file) {
+  // Abre a foto já na orientação correta e limita o lado maior a 2400 px (base do corte).
+  async function carregarFonte(file) {
     let bmp;
     try { bmp = await createImageBitmap(file, { imageOrientation: 'from-image' }); } catch (_) {
       bmp = await new Promise((ok, falha) => {
@@ -492,11 +494,22 @@
       });
     }
     const w0 = bmp.naturalWidth || bmp.width, h0 = bmp.naturalHeight || bmp.height;
-    const escala = Math.min(1, 1600 / Math.max(w0, h0));
-    const w = Math.round(w0 * escala), h = Math.round(h0 * escala);
+    const escala = Math.min(1, 2400 / Math.max(w0, h0));
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.max(1, Math.round(w0 * escala)); canvas.height = Math.max(1, Math.round(h0 * escala));
+    canvas.getContext('2d').drawImage(bmp, 0, 0, canvas.width, canvas.height);
+    if (bmp.close) bmp.close();
+    return canvas;
+  }
+
+  // Recorta `rect` (px da fonte), reduz o lado maior a 1600 px e gera JPEG de até ~1,5 MB.
+  async function gerarFoto(fonte, rect) {
+    const r = rect || { x: 0, y: 0, w: fonte.width, h: fonte.height };
+    const escala = Math.min(1, 1600 / Math.max(r.w, r.h));
+    const w = Math.max(1, Math.round(r.w * escala)), h = Math.max(1, Math.round(r.h * escala));
     const canvas = document.createElement('canvas');
     canvas.width = w; canvas.height = h;
-    canvas.getContext('2d').drawImage(bmp, 0, 0, w, h);
+    canvas.getContext('2d').drawImage(fonte, r.x, r.y, r.w, r.h, 0, 0, w, h);
     let blob = null;
     for (const q of [0.85, 0.75, 0.65, 0.55]) {
       blob = await new Promise((ok) => canvas.toBlob(ok, 'image/jpeg', q));
@@ -549,7 +562,7 @@
     const fechar = () => {
       if (sheet.open) sheet.close();
       if (feedState.foto) URL.revokeObjectURL(feedState.foto.url);
-      feedState.foto = null; feedState.legenda = ''; file.value = ''; cam.value = '';
+      feedState.foto = null; feedState.fonte = null; feedState.rect = null; feedState.legenda = ''; file.value = ''; cam.value = '';
     };
 
     add.addEventListener('click', () => choose.showModal());
@@ -563,9 +576,14 @@
       add.disabled = true;
       avisoPagina('Preparando a foto…');
       try {
-        const nova = await prepararFoto(f);
+        const fonte = await carregarFonte(f);
+        avisoPagina('');
+        const rect = await window.Cropper.open(fonte);
+        if (!rect) { input.value = ''; add.disabled = false; return; }
+        avisoPagina('Preparando a foto…');
+        const nova = await gerarFoto(fonte, rect);
         if (feedState.foto) URL.revokeObjectURL(feedState.foto.url);
-        feedState.foto = nova;
+        feedState.foto = nova; feedState.fonte = fonte; feedState.rect = rect;
         $('feed-preview').src = nova.url;
         legenda.value = feedState.legenda;
         autor.value = feedState.autor;
@@ -578,6 +596,17 @@
       add.disabled = false;
       input.value = '';
     };
+    $('feed-crop').addEventListener('click', async () => {
+      if (!feedState.fonte || feedState.enviando) return;
+      const rect = await window.Cropper.open(feedState.fonte, feedState.rect);
+      if (!rect) return;
+      try {
+        const nova = await gerarFoto(feedState.fonte, rect);
+        URL.revokeObjectURL(feedState.foto.url);
+        feedState.foto = nova; feedState.rect = rect;
+        $('feed-preview').src = nova.url;
+      } catch (e) { aviso(e.message, true); }
+    });
     file.addEventListener('change', () => aoEscolher(file));
     cam.addEventListener('change', () => aoEscolher(cam));
 
