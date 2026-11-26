@@ -317,7 +317,7 @@ dialog.sheet::backdrop { background: rgba(5, 9, 22, 0.72); backdrop-filter: blur
 .post-meta { display: flex; flex-wrap: wrap; gap: 4px 12px; margin: 3px 0 2px 6px; font-size: 13px; color: var(--muted); }
 .post-cap + .post-meta { margin-top: -6px; }
 .post-meta span + span::before { content: "·"; margin-right: 12px; }
-.post-img { width: 100%; height: auto; display: block; border-radius: 12px; background: rgba(255, 255, 255, 0.05); }
+.post-img { width: 100%; max-height: min(65dvh, 560px); object-fit: contain; height: auto; display: block; border-radius: 12px; background: rgba(255, 255, 255, 0.05); }
 .post-cap { margin: 0 0 0 6px; white-space: pre-wrap; overflow-wrap: anywhere; }
 button.btn:disabled { opacity: 0.6; cursor: progress; }
 

@@ -61,8 +61,9 @@ Depois de mudar uma variável, faça um novo deploy.
 Quem tem acesso ao site toca no **+**, escolhe a foto e depois informa a legenda e o nome (os dois opcionais; sem nome
 a tela mostra "Convidado"). As fotos ficam no bucket do R2; os posts (nome, legenda, chave da foto, data, tamanho,
 IP e navegador de quem enviou) ficam em uma tabela `feed_posts` no MySQL/MariaDB do VPS, que o próprio site cria no primeiro uso.
-O IP e o navegador (`ip`, `user_agent`) são só **gravados**: a API e a tela nunca os devolvem. A foto é reduzida no aparelho (lado maior de 1600 px, JPEG) e
-enviada à função `api/feed.js`, que a grava no R2. Como o envio passa pela Vercel, o bucket **não precisa de CORS**.
+O IP e o navegador (`ip`, `user_agent`) são só **gravados**: a API e a tela nunca os devolvem. A foto é reduzida no aparelho (lado maior de 1600 px) e enviada à função `api/feed.js`, que a converte para
+**WebP** (qualidade 78, rotação do celular corrigida, com a biblioteca `sharp`) antes de gravá-la no R2. Na tela, a foto
+tem altura máxima (65% da tela, até 560 px), mantendo a proporção; tocar nela abre a imagem inteira. Como o envio passa pela Vercel, o bucket **não precisa de CORS**.
 
 **O envio só funciona com `DASHBOARD_PASSWORD` definida** (sem senha, qualquer pessoa da internet poderia
 publicar). Sem as variáveis abaixo, a aba mostra quais estão faltando.
