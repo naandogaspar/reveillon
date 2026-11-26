@@ -33,6 +33,7 @@
     casa: { title: 'Casa', render: () => renderPeople('casa') },
     comida: { title: 'Comida', render: () => renderPeople('comida') },
     cerveja: { title: 'Cerveja', render: renderBeer },
+    feed: { title: 'Feed', render: renderFeed },
     gastos: { title: 'Gastos', render: renderExpenses },
   };
 
@@ -395,6 +396,240 @@
     });
   }
 
+  // ----------------------------------------------------------------------- feed
+  // Timeline de fotos. O botão "+" abre a escolha da foto; depois da escolha, uma folha pede a
+  // legenda e o nome (opcional). A foto é reduzida no aparelho antes de subir.
+  const feedState = { itens: [], temMais: false, carregado: false, erro: '', enviando: false, autor: '', legenda: '', foto: null };
+  let feedTimer = null;
+  let statusTimer = null;
+  const stopFeedTimer = () => { clearInterval(feedTimer); feedTimer = null; };
+  const lerAutor = () => { try { return localStorage.getItem('reveillon-autor') || ''; } catch (_) { return ''; } };
+  const guardarAutor = (v) => { try { localStorage.setItem('reveillon-autor', v); } catch (_) { /* ok */ } };
+  const quando = (iso) => {
+    const min = Math.floor((Date.now() - Date.parse(iso)) / 60000);
+    if (min < 1) return 'agora';
+    if (min < 60) return `há ${min} min`;
+    if (min < 1440) return `há ${Math.floor(min / 60)} h`;
+    return new Intl.DateTimeFormat('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }).format(new Date(iso)).replace(',', ' às');
+  };
+
+  async function feedFetch(url, opts = {}) {
+    const headers = { ...(opts.headers || {}) };
+    const pass = getPass();
+    if (pass) headers['x-senha'] = pass;
+    const res = await fetch(url, { ...opts, headers, cache: 'no-store' });
+    if (res.status === 401) { clearPass(); showLoginForm(Boolean(pass)); throw new Error('login'); }
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(body.detalhe || `Erro ${res.status}`);
+    return body;
+  }
+
+  function postHtml(p) {
+    const alt = esc(p.legenda || (p.autor ? `Foto de ${p.autor}` : 'Foto do feed'));
+    const legenda = p.legenda ? `<p class="post-cap">${esc(p.legenda)}</p>` : '';
+    return `<article class="panel post">
+      <button type="button" class="post-open" data-src="${esc(p.imagem)}" data-alt="${alt}" aria-label="Ver a foto em tela cheia">
+        <img class="post-img" src="${esc(p.imagem)}" width="${p.largura}" height="${p.altura}" loading="lazy" decoding="async" alt="${alt}">
+      </button>
+      ${legenda}
+      <p class="post-meta">${p.autor ? `<span>${esc(p.autor)}</span>` : ''}<span>${esc(quando(p.criadoEm))}</span></p>
+    </article>`;
+  }
+
+  function feedListHtml() {
+    if (feedState.erro && !feedState.itens.length) return `<p class="note">${ic('info')}<span>${esc(feedState.erro)}</span></p>`;
+    if (!feedState.carregado) return '<p class="state">Carregando…</p>';
+    if (!feedState.itens.length) return '<p class="empty">Ainda não há fotos. Toque no + para publicar a primeira.</p>';
+    return feedState.itens.map(postHtml).join('')
+      + (feedState.temMais ? `<button type="button" class="btn btn--ghost" id="feed-mais">Ver fotos mais antigas</button>` : '');
+  }
+
+  function renderFeed() {
+    if (!feedState.autor) feedState.autor = lerAutor();
+    return `<div class="feed">
+      <h1 class="sr-only">Feed</h1>
+      <button type="button" class="fab" id="feed-add" aria-label="Publicar uma foto">${ic('plus')}</button>
+      <input type="file" id="feed-file" accept="image/*" hidden>
+      <input type="file" id="feed-cam" accept="image/*" capture="environment" hidden>
+      <p class="feed-status" id="feed-status" role="status"></p>
+      <div id="feed-list" class="feed" aria-live="polite">${feedListHtml()}</div>
+    </div>
+    <dialog class="sheet sheet--small" id="feed-choose" aria-labelledby="choose-title">
+      <div class="sheet-head"><h2 id="choose-title">Adicionar foto</h2>
+        <button type="button" class="icon-btn" id="choose-close" aria-label="Fechar">${ic('xmark')}</button></div>
+      <button type="button" class="btn btn--ghost choice" id="choose-cam">${ic('camera')}<span>Abrir a câmera</span></button>
+      <button type="button" class="btn btn--ghost choice" id="choose-gal">${ic('images')}<span>Escolher da galeria</span></button>
+    </dialog>
+    <dialog class="sheet" id="feed-sheet" aria-labelledby="feed-sheet-title">
+      <div class="sheet-head"><h2 id="feed-sheet-title">Nova publicação</h2>
+        <button type="button" class="icon-btn" id="feed-close" aria-label="Fechar">${ic('xmark')}</button></div>
+      <img class="preview" id="feed-preview" alt="Prévia da foto escolhida">
+      <label class="sr-only" for="feed-legenda">Legenda</label>
+      <textarea id="feed-legenda" maxlength="500" placeholder="Escreva uma legenda…"></textarea>
+      <label class="sr-only" for="feed-autor">Seu nome (opcional)</label>
+      <input type="text" id="feed-autor" maxlength="40" autocomplete="name" placeholder="Seu nome (opcional)">
+      <p class="composer-msg" id="feed-msg" role="status"></p>
+      <div class="sheet-actions">
+        <button type="button" class="btn btn--ghost" id="feed-cancel">Cancelar</button>
+        <button type="button" class="btn" id="feed-send">${ic('paper-plane')}<span>Publicar</span></button>
+      </div>
+    </dialog>
+    <dialog class="viewer" id="feed-viewer" aria-label="Foto ampliada">
+      <button type="button" class="icon-btn viewer-close" id="viewer-close" aria-label="Fechar">${ic('xmark')}</button>
+      <img id="viewer-img" alt="">
+    </dialog>`;
+  }
+
+  // Reduz a foto no aparelho: lado maior de 1600 px, JPEG, até ~1,5 MB.
+  async function prepararFoto(file) {
+    let bmp;
+    try { bmp = await createImageBitmap(file, { imageOrientation: 'from-image' }); } catch (_) {
+      bmp = await new Promise((ok, falha) => {
+        const img = new Image(); const u = URL.createObjectURL(file);
+        img.onload = () => { URL.revokeObjectURL(u); ok(img); };
+        img.onerror = () => { URL.revokeObjectURL(u); falha(new Error('Não foi possível abrir essa foto. Tente outra.')); };
+        img.src = u;
+      });
+    }
+    const w0 = bmp.naturalWidth || bmp.width, h0 = bmp.naturalHeight || bmp.height;
+    const escala = Math.min(1, 1600 / Math.max(w0, h0));
+    const w = Math.round(w0 * escala), h = Math.round(h0 * escala);
+    const canvas = document.createElement('canvas');
+    canvas.width = w; canvas.height = h;
+    canvas.getContext('2d').drawImage(bmp, 0, 0, w, h);
+    let blob = null;
+    for (const q of [0.85, 0.75, 0.65, 0.55]) {
+      blob = await new Promise((ok) => canvas.toBlob(ok, 'image/jpeg', q));
+      if (blob && blob.size <= 1.5 * 1024 * 1024) break;
+    }
+    if (!blob) throw new Error('Não foi possível preparar essa foto. Tente outra.');
+    return { blob, w, h, url: URL.createObjectURL(blob) };
+  }
+
+  const blobParaBase64 = (blob) => new Promise((ok, falha) => {
+    const r = new FileReader();
+    r.onload = () => ok(String(r.result).split(',')[1] || '');
+    r.onerror = () => falha(new Error('Não foi possível ler a foto.'));
+    r.readAsDataURL(blob);
+  });
+
+  async function carregarFeed({ mais = false } = {}) {
+    try {
+      const antes = mais && feedState.itens.length ? `?antes=${feedState.itens.at(-1).id}` : '';
+      const r = await feedFetch(`/api/feed${antes}`);
+      feedState.itens = mais ? feedState.itens.concat(r.itens) : r.itens;
+      feedState.temMais = r.temMais;
+      feedState.erro = '';
+    } catch (e) {
+      if (e.message === 'login') return;
+      feedState.erro = e.message;
+    }
+    feedState.carregado = true;
+    atualizarListaFeed();
+  }
+
+  function atualizarListaFeed() {
+    const lista = document.getElementById('feed-list');
+    if (!lista || currentRoute() !== 'feed') return;
+    lista.innerHTML = feedListHtml();
+    const mais = document.getElementById('feed-mais');
+    if (mais) mais.addEventListener('click', () => { mais.disabled = true; carregarFeed({ mais: true }); });
+  }
+
+  function bindFeed() {
+    const $ = (id) => document.getElementById(id);
+    const sheet = $('feed-sheet'), file = $('feed-file'), cam = $('feed-cam'), choose = $('feed-choose'), msg = $('feed-msg'), status = $('feed-status');
+    const legenda = $('feed-legenda'), autor = $('feed-autor'), send = $('feed-send'), add = $('feed-add');
+    const aviso = (t, erro) => { msg.textContent = t; msg.classList.toggle('err', Boolean(erro)); };
+    const avisoPagina = (t, erro) => {
+      status.textContent = t; status.classList.toggle('err', Boolean(erro));
+      clearTimeout(statusTimer);
+      if (t) statusTimer = setTimeout(() => { status.textContent = ''; }, 5000);
+    };
+    const fechar = () => {
+      if (sheet.open) sheet.close();
+      if (feedState.foto) URL.revokeObjectURL(feedState.foto.url);
+      feedState.foto = null; feedState.legenda = ''; file.value = ''; cam.value = '';
+    };
+
+    add.addEventListener('click', () => choose.showModal());
+    $('choose-close').addEventListener('click', () => choose.close());
+    choose.addEventListener('click', (e) => { if (e.target === choose) choose.close(); });
+    $('choose-cam').addEventListener('click', () => { choose.close(); cam.click(); });
+    $('choose-gal').addEventListener('click', () => { choose.close(); file.click(); });
+    const aoEscolher = async (input) => {
+      const f = input.files && input.files[0];
+      if (!f) return;
+      add.disabled = true;
+      avisoPagina('Preparando a foto…');
+      try {
+        const nova = await prepararFoto(f);
+        if (feedState.foto) URL.revokeObjectURL(feedState.foto.url);
+        feedState.foto = nova;
+        $('feed-preview').src = nova.url;
+        legenda.value = feedState.legenda;
+        autor.value = feedState.autor;
+        aviso('');
+        send.disabled = false; send.querySelector('span').textContent = 'Publicar';
+        avisoPagina('');
+        sheet.showModal();
+        legenda.focus();
+      } catch (e) { avisoPagina(e.message, true); }
+      add.disabled = false;
+      input.value = '';
+    };
+    file.addEventListener('change', () => aoEscolher(file));
+    cam.addEventListener('change', () => aoEscolher(cam));
+
+    legenda.addEventListener('input', () => { feedState.legenda = legenda.value; });
+    autor.addEventListener('input', () => { feedState.autor = autor.value; });
+    $('feed-close').addEventListener('click', () => { if (!feedState.enviando) fechar(); });
+    $('feed-cancel').addEventListener('click', () => { if (!feedState.enviando) fechar(); });
+    sheet.addEventListener('cancel', (e) => { if (feedState.enviando) e.preventDefault(); else fechar(); });
+    sheet.addEventListener('click', (e) => { if (e.target === sheet && !feedState.enviando) fechar(); }); // toque fora
+
+    send.addEventListener('click', async () => {
+      if (!feedState.foto || feedState.enviando) return;
+      feedState.enviando = true; send.disabled = true; send.querySelector('span').textContent = 'Publicando…'; aviso('');
+      const nome = feedState.autor.trim();
+      try {
+        const imagem = await blobParaBase64(feedState.foto.blob);
+        const post = await feedFetch('/api/feed', {
+          method: 'POST', headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ autor: nome, legenda: feedState.legenda, imagem }),
+        });
+        guardarAutor(nome);
+        feedState.erro = ''; feedState.carregado = true;
+        feedState.itens = [post, ...feedState.itens];
+        feedState.enviando = false;
+        fechar();
+        atualizarListaFeed();
+        avisoPagina('Foto publicada.');
+      } catch (e) {
+        feedState.enviando = false;
+        if (e.message !== 'login') { send.disabled = false; send.querySelector('span').textContent = 'Publicar'; aviso(e.message, true); }
+      }
+    });
+
+    // Foto em tela cheia: acompanha a rotação do aparelho (se a rotação automática estiver ligada).
+    const viewer = $('feed-viewer'), vimg = $('viewer-img');
+    $('feed-list').addEventListener('click', (e) => {
+      const b = e.target.closest('.post-open');
+      if (!b) return;
+      vimg.src = b.dataset.src; vimg.alt = b.dataset.alt;
+      viewer.showModal();
+    });
+    viewer.addEventListener('click', () => viewer.close()); // toque em qualquer lugar fecha
+    $('viewer-close').addEventListener('click', (e) => { e.stopPropagation(); viewer.close(); });
+    viewer.addEventListener('close', () => { vimg.removeAttribute('src'); });
+
+    atualizarListaFeed();
+    // Enquanto a aba está aberta, busca fotos novas a cada 30 s (sem mexer no que está sendo digitado).
+    stopFeedTimer();
+    feedTimer = setInterval(() => { if (!document.hidden && !feedState.enviando) carregarFeed(); }, 30 * 1000);
+    carregarFeed();
+  }
+
   // -------------------------------------------------------- estados e carga
   let memoryPass = '';
   const getPass = () => { try { return localStorage.getItem('reveillon-senha') || memoryPass; } catch (_) { return memoryPass; } };
@@ -444,25 +679,40 @@
     }
   }
 
-  const currentRoute = () => { const r = location.hash.replace('#', ''); return ROUTES[r] ? r : 'inicio'; };
+  // O Feed fica escondido até 24/12; antes disso só abre quem entra com ?feed na URL.
+  const FEED_LIBERA = '12-24';
+  const feedLiberado = () => {
+    if (new URLSearchParams(location.search).has('feed')) return true;
+    return Boolean(data && data.viagem && data.hoje >= `${data.viagem.inicio.slice(0, 4)}-${FEED_LIBERA}`);
+  };
+  const currentRoute = () => {
+    const r = location.hash.replace('#', '');
+    if (r === 'feed' && !feedLiberado()) return 'inicio';
+    return ROUTES[r] ? r : 'inicio';
+  };
 
   function render(resetScroll) {
     if (!data) return;
     // Atualização automática não pode tirar o foco de quem está digitando na busca.
     if (!resetScroll && document.activeElement && document.activeElement.id === 'q') return;
+    if (!resetScroll && currentRoute() === 'feed') return; // o feed se atualiza sozinho; não apagar o que está sendo digitado
     const route = currentRoute();
     const view = ROUTES[route];
     document.getElementById('brand').textContent = data.titulo;
     document.title = `${view.title} · ${data.titulo}`;
     document.querySelectorAll('.tabs a').forEach((a) => {
+      if (a.dataset.route === 'feed') a.hidden = !feedLiberado();
       if (a.dataset.route === route) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
     });
     const y = window.scrollY;
     stopTick();
+    stopFeedTimer();
+    main.dataset.route = route;
     main.innerHTML = view.render();
     if (route === 'casa' || route === 'comida') bindPeople(route);
     if (route === 'inicio') bindHome();
     if (route === 'cerveja') bindBeer();
+    if (route === 'feed') bindFeed();
     if (resetScroll) { window.scrollTo(0, 0); main.focus({ preventScroll: true }); } else { window.scrollTo(0, y); }
   }
 

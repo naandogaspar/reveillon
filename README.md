@@ -5,8 +5,8 @@ Página somente leitura para os participantes acompanharem pagamentos e gastos.
 mostra o que estiver lá (atualização em cerca de 15 a 45 segundos, veja o fim deste arquivo).
 
 Abas: **Início** (endereço com botões, contagem regressiva ao vivo e totais de cerveja com piada),
-**Casa** e **Comida** (pagamentos por pessoa), **Cerveja** (tabela ordenável) e **Gastos**
-(saídas e saldo da alimentação). Tema escuro (azul-marinho com detalhes dourados).
+**Casa** e **Comida** (pagamentos por pessoa), **Cerveja** (tabela ordenável), **Feed** (fotos com legenda)
+e **Gastos** (saídas e saldo da alimentação). Tema escuro (azul-marinho com detalhes dourados).
 
 Fluxo de trabalho: cada push para o GitHub publica sozinho na Vercel (`main` vai para produção;
 as outras branches geram um endereço de preview).
@@ -27,6 +27,10 @@ as outras branches geram um endereço de preview).
 | `TRIP_YEAR` | Ano de início da viagem; datas sem ano (30/12, 01/01) usam isto. | `2026` |
 | `TRIP_TITLE` | Título no topo (por padrão vem do código). | `Réveillon 2027` |
 | `TRIP_LOCATION` | Local mostrado ao lado das datas (ex.: `Maricá, RJ`). | vazio |
+| `DATABASE_URL` | Banco do Feed: `mysql://USUARIO:SENHA@IP_DO_VPS:PORTA_EXTERNA/NOME_DO_BANCO`. Veja a seção Feed. | sem Feed |
+| `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` | Credenciais do Cloudflare R2 (token com permissão de leitura e escrita no bucket). | sem Feed |
+| `R2_BUCKET` | Nome do bucket das fotos. | `reveillon` |
+| `R2_PUBLIC_URL` | Endereço público do bucket (URL `r2.dev` ou domínio próprio), sem barra no fim. | sem Feed |
 | `GID_PAGANTES`, `GID_SAIDAS`, `GID_CERVEJA` | Número `gid=` de cada aba (aparece na URL ao abrir a aba). Só mude se usar outra planilha. | abas da planilha padrão |
 
 Depois de mudar uma variável, faça um novo deploy.
@@ -52,18 +56,53 @@ Depois de mudar uma variável, faça um novo deploy.
   a cada carregamento (lista `JOKES` em `public/app.js`). Se a aba falhar, o resto do painel continua funcionando.
 - Nomes e textos aparecem exatamente como estão na planilha.
 
+## Feed (fotos)
+
+Quem tem acesso ao site toca no **+**, escolhe a foto e depois informa a legenda e o nome (os dois opcionais; sem nome
+a tela mostra "Convidado"). As fotos ficam no bucket do R2; os posts (nome, legenda, chave da foto, data, tamanho,
+IP e navegador de quem enviou) ficam em uma tabela `feed_posts` no MySQL/MariaDB do VPS, que o próprio site cria no primeiro uso.
+O IP e o navegador (`ip`, `user_agent`) são só **gravados**: a API e a tela nunca os devolvem. A foto é reduzida no aparelho (lado maior de 1600 px) e enviada à função `api/feed.js`, que a converte para
+**WebP** (qualidade 78, rotação do celular corrigida, com a biblioteca `sharp`) antes de gravá-la no R2. Na tela, a foto
+tem altura máxima (65% da tela, até 560 px), mantendo a proporção; tocar nela abre a imagem inteira. Como o envio passa pela Vercel, o bucket **não precisa de CORS**.
+
+**O envio só funciona com `DASHBOARD_PASSWORD` definida** (sem senha, qualquer pessoa da internet poderia
+publicar). Sem as variáveis abaixo, a aba mostra quais estão faltando.
+
+Para ativar:
+
+1. **Banco (Dokploy):** no banco, aba *General → External Credentials*, defina uma *External Port* e salve
+   (libere essa porta no firewall do VPS). Monte a URL com o usuário, a senha, o IP do VPS, essa porta e o
+   nome do banco, e coloque em `DATABASE_URL`. A URL "Internal" não serve: ela só funciona dentro do Dokploy.
+2. **R2:** em *R2 → Manage R2 API Tokens*, crie um token com *Object Read & Write* só para o bucket e copie
+   o *Access Key ID* e o *Secret Access Key*. O `R2_ACCOUNT_ID` é o trecho antes de `.r2.cloudflarestorage.com`
+   na URL da API S3 do bucket. Em `R2_PUBLIC_URL` vai a *URL de desenvolvimento público* do bucket (precisa estar habilitada).
+3. **Vercel:** cadastre as variáveis (`DATABASE_URL`, `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`,
+   `R2_PUBLIC_URL`, `DASHBOARD_PASSWORD`) e faça um novo deploy.
+
+Pontos de atenção:
+- A porta externa do banco fica aberta na internet (a Vercel não tem IP fixo para liberar só ela). Use uma
+  senha forte e o usuário do próprio banco do Feed, nunca o root. A conexão com o MySQL não é criptografada por padrão.
+- A URL `r2.dev` tem limite de requisições e a Cloudflare não recomenda para produção; para o grupo do Réveillon basta.
+  Para algo maior, conecte um domínio próprio ao bucket e troque `R2_PUBLIC_URL`.
+- Não há exclusão pelo site. Para apagar um post, remova a linha em `feed_posts` (e, se quiser, o arquivo no bucket).
+- A lista mostra 20 fotos por vez (botão "Ver fotos mais antigas") e se atualiza a cada 30 s com a aba aberta.
+
+**Aba escondida até 24/12:** o item Feed só aparece no menu a partir de 24/12 (a data vem da planilha/servidor, no
+fuso de São Paulo). Antes disso, abre quem entra com `?feed` na URL, por exemplo `https://seu-site.vercel.app/?feed`.
+Isso só esconde o menu; quem protege o conteúdo continua sendo a senha. Para mudar a data, edite `FEED_LIBERA` em `public/app.js`.
+
 ## Rodar no computador
 
 ```
 npm test            # testes do leitor da planilha
 npm run dev         # http://localhost:3000, lê a planilha de verdade
-npm run dev:mock    # usa uma cópia dos dados (sem internet)
-PASSWORD=abc npm run dev   # testa a senha
+npm run dev:mock    # usa uma cópia dos dados e um Feed em memória (sem internet)
+PASSWORD=abc npm run dev   # testa a senha (com ela o envio de fotos é liberado no modo mock)
 ```
 
 ## Limites
 
-- Somente leitura: ninguém altera dados pelo dashboard.
+- Somente leitura, exceto o Feed: ninguém altera a planilha pelo dashboard.
 - Sem histórico: a planilha guarda só o total pago por pessoa, então não há gráfico por data.
 - A senha protege os **dados**; a página em si é pública, e a planilha continua acessível a quem tiver o link dela.
 - A senha é uma só para todo o grupo (não há conta por pessoa). Para trocar, mude `DASHBOARD_PASSWORD` e faça um novo deploy.

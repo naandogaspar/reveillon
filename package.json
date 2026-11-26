@@ -3,10 +3,16 @@
   "version": "1.0.0",
   "private": true,
   "description": "Dashboard somente leitura do Réveillon, alimentado por uma planilha do Google",
-  "engines": { "node": ">=20" },
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
-    "test": "node --test test/sheet.test.js",
+    "test": "node --test test/*.test.js",
     "dev": "node scripts/dev.js",
     "dev:mock": "MOCK=1 node scripts/dev.js"
+  },
+  "dependencies": {
+    "mysql2": "^3.11.0",
+    "sharp": "^0.35.5"
   }
 }
